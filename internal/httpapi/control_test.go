@@ -17,6 +17,14 @@ import (
 type fakeControlCenter struct {
 	status    controlcenter.Status
 	requested []controlcenter.Action
+	synced    int
+}
+
+func (fake *fakeControlCenter) SyncHermes(context.Context) (controlcenter.SyncResult, error) {
+	fake.synced++
+	return controlcenter.SyncResult{
+		Agents: []string{"mika", "aura", "nari", "nua", "sora"}, BackupDir: `C:\Cortex\backups\sync`,
+	}, nil
 }
 
 func (fake *fakeControlCenter) Status(context.Context) (controlcenter.Status, error) {
@@ -60,7 +68,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	dashboard := httptest.NewRecorder()
 	handler.ServeHTTP(dashboard, dashboardRequest)
 	body := dashboard.Body.String()
-	for _, expected := range []string{"System control", "Running", "127.0.0.1:7777", "PID 4242", "Restart Cortex", "Stop Cortex"} {
+	for _, expected := range []string{"System control", "Running", "127.0.0.1:7777", "PID 4242", "Restart Cortex", "Stop Cortex", "Discover &amp; connect agents"} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("dashboard omitted %q: %s", expected, body)
 		}
@@ -68,6 +76,25 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	csrfMatch := regexp.MustCompile(`name="csrf" value="([^"]+)"`).FindStringSubmatch(body)
 	if len(csrfMatch) != 2 {
 		t.Fatal("dashboard omitted CSRF token")
+	}
+	unsafeSync := httptest.NewRequest(http.MethodPost, "/ui/hermes/sync", strings.NewReader(""))
+	unsafeSync.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	unsafeSync.AddCookie(cookies[0])
+	unsafe := httptest.NewRecorder()
+	handler.ServeHTTP(unsafe, unsafeSync)
+	if unsafe.Code != http.StatusForbidden || control.synced != 0 {
+		t.Fatalf("sync without CSRF status=%d calls=%d", unsafe.Code, control.synced)
+	}
+	syncForm := url.Values{"csrf": {csrfMatch[1]}}
+	syncRequest := httptest.NewRequest(http.MethodPost, "/ui/hermes/sync", strings.NewReader(syncForm.Encode()))
+	syncRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	syncRequest.AddCookie(cookies[0])
+	synced := httptest.NewRecorder()
+	handler.ServeHTTP(synced, syncRequest)
+	if synced.Code != http.StatusOK || control.synced != 1 ||
+		!strings.Contains(synced.Body.String(), "5 agents connected") ||
+		!strings.Contains(synced.Body.String(), `C:\Cortex\backups\sync`) {
+		t.Fatalf("sync status=%d calls=%d body=%s", synced.Code, control.synced, synced.Body.String())
 	}
 
 	restartForm := url.Values{"csrf": {csrfMatch[1]}, "action": {"restart"}}

@@ -6,6 +6,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -51,6 +52,7 @@ type dashboardSystem struct {
 	DataDir string
 	Uptime  string
 	Pending controlcenter.Action
+	Syncing bool
 }
 
 type dashboardMemory struct {
@@ -133,13 +135,57 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 		} else {
 			view.System = &dashboardSystem{
 				Version: status.Version, Listen: status.Listen, PID: status.PID,
-				DataDir: status.DataDir, Uptime: status.Uptime.Round(time.Second).String(), Pending: status.Pending,
+				DataDir: status.DataDir, Uptime: status.Uptime.Round(time.Second).String(),
+				Pending: status.Pending, Syncing: status.Syncing,
 			}
 		}
 	}
 	writer.Header().Set("Cache-Control", "no-store")
 	if err := dashboardTemplates.ExecuteTemplate(writer, "dashboard.html", view); err != nil {
 		http.Error(writer, "render dashboard", http.StatusInternalServerError)
+	}
+}
+
+type hermesSyncView struct {
+	Count     int
+	Agents    []string
+	BackupDir string
+}
+
+func (server *Server) hermesSync(writer http.ResponseWriter, request *http.Request) {
+	setDashboardHeaders(writer)
+	_, session, ok := server.sessions.fromRequest(request)
+	if !ok {
+		http.Redirect(writer, request, "/", http.StatusSeeOther)
+		return
+	}
+	if server.control == nil || !server.hub.CanGovern(session.AgentID) {
+		http.Error(writer, "Hermes sync is not permitted", http.StatusForbidden)
+		return
+	}
+	request.Body = http.MaxBytesReader(writer, request.Body, 4096)
+	if err := request.ParseForm(); err != nil {
+		http.Error(writer, "invalid Hermes sync request", http.StatusBadRequest)
+		return
+	}
+	if !validCSRF(session.CSRFToken, request.FormValue("csrf")) {
+		http.Error(writer, "invalid csrf token", http.StatusForbidden)
+		return
+	}
+	result, err := server.control.SyncHermes(request.Context())
+	if errors.Is(err, controlcenter.ErrActionPending) {
+		http.Error(writer, "another Cortex operation is already running", http.StatusConflict)
+		return
+	}
+	if err != nil {
+		http.Error(writer, "sync Hermes agents: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writer.Header().Set("Cache-Control", "no-store")
+	if err := dashboardTemplates.ExecuteTemplate(writer, "hermes_sync.html", hermesSyncView{
+		Count: len(result.Agents), Agents: result.Agents, BackupDir: result.BackupDir,
+	}); err != nil {
+		http.Error(writer, "render Hermes sync", http.StatusInternalServerError)
 	}
 }
 

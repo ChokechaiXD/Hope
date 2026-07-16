@@ -25,10 +25,12 @@ cmd/cortex/                      CLI composition and process lifecycle
 connectors/hermes/               embedded, replaceable Hermes adapter
 internal/autostart/              Windows user-level startup adapter
 internal/config/                 local config and hashed agent credentials
+internal/controlcenter/          serialized local runtime and connector controls
 internal/cortex/                 memory domain and deep-module interface
 internal/hermes/                 connector discovery, install, activation
 internal/httpapi/                HTTP translation and management dashboard
 internal/importer/holographic/   read-only legacy adapter
+internal/launcher/               validated Windows dashboard opener
 docs/                            product and architecture contracts
 ```
 
@@ -66,6 +68,8 @@ than it understands.
 10. Project and domain memory require an exact recall scope.
 11. Browser sessions cannot authenticate HTTP API requests.
 12. Legacy databases are imported read-only and remain untouched.
+13. Recall token budgets are enforced before recall items and usage events are
+    persisted; omitted context cannot influence learning scores.
 
 ## Evolution points
 

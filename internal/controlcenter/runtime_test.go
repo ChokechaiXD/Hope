@@ -51,3 +51,35 @@ func TestRuntimeReportsCurrentProcessAndQueuesOneValidatedAction(t *testing.T) {
 		t.Fatalf("ready runtime retained action: status=%#v err=%v", status, err)
 	}
 }
+
+func TestRuntimeSerializesHermesSyncAndProcessActions(t *testing.T) {
+	t.Parallel()
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	runtime := newRuntime("0.2.0", "127.0.0.1:7777", `C:\Cortex`, func(context.Context) (SyncResult, error) {
+		close(started)
+		<-release
+		return SyncResult{Agents: []string{"mika", "sola"}, BackupDir: `C:\backup`}, nil
+	})
+	done := make(chan error, 1)
+	go func() {
+		_, err := runtime.SyncHermes(context.Background())
+		done <- err
+	}()
+	<-started
+	if err := runtime.Request(ActionRestart); !errors.Is(err, ErrActionPending) {
+		t.Fatalf("restart during sync error = %v", err)
+	}
+	if _, err := runtime.SyncHermes(context.Background()); !errors.Is(err, ErrActionPending) {
+		t.Fatalf("second sync error = %v", err)
+	}
+	status, err := runtime.Status(context.Background())
+	if err != nil || !status.Syncing {
+		t.Fatalf("syncing status=%#v err=%v", status, err)
+	}
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatalf("sync Hermes: %v", err)
+	}
+}

@@ -25,6 +25,7 @@ func New(hub *cortex.Hub, auth Authenticator) http.Handler {
 type runtimeControl interface {
 	Status(context.Context) (controlcenter.Status, error)
 	Request(controlcenter.Action) error
+	SyncHermes(context.Context) (controlcenter.SyncResult, error)
 }
 
 func NewWithControl(hub *cortex.Hub, auth Authenticator, control runtimeControl) http.Handler {
@@ -36,6 +37,7 @@ func NewWithControl(hub *cortex.Hub, auth Authenticator, control runtimeControl)
 	mux.HandleFunc("POST /login", server.login)
 	mux.HandleFunc("POST /logout", server.logout)
 	mux.HandleFunc("POST /ui/system/action", server.systemAction)
+	mux.HandleFunc("POST /ui/hermes/sync", server.hermesSync)
 	mux.HandleFunc("GET /ui/memories/{memoryID}", server.dashboardDetail)
 	mux.HandleFunc("POST /ui/memories/{memoryID}/review", server.dashboardReview)
 	mux.HandleFunc("GET /v1/health", server.health)

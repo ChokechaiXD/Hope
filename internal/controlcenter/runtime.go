@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"cortex.local/cortex/internal/hermes"
 )
 
 type Action string
@@ -32,7 +36,15 @@ type Status struct {
 	DataDir string
 	Uptime  time.Duration
 	Pending Action
+	Syncing bool
 }
+
+type SyncResult struct {
+	Agents    []string
+	BackupDir string
+}
+
+type syncHermes func(context.Context) (SyncResult, error)
 
 type Runtime struct {
 	version   string
@@ -43,14 +55,34 @@ type Runtime struct {
 	actions   chan Action
 	mu        sync.Mutex
 	pending   Action
+	syncing   bool
+	sync      syncHermes
 }
 
 func NewRuntime(version, listen, dataDir string) *Runtime {
+	hermesHome := defaultHermesHome()
+	return newRuntime(version, listen, dataDir, func(ctx context.Context) (SyncResult, error) {
+		result, err := hermes.Sync(hermes.SyncOptions{
+			HermesHome: hermesHome, DataDir: dataDir, ServerURL: "http://" + listen,
+			RootAgent: "mika", Activate: true,
+		})
+		if err != nil {
+			return SyncResult{}, err
+		}
+		agents := make([]string, 0, len(result.Profiles))
+		for _, profile := range result.Profiles {
+			agents = append(agents, profile.AgentID)
+		}
+		return SyncResult{Agents: agents, BackupDir: result.BackupDir}, nil
+	})
+}
+
+func newRuntime(version, listen, dataDir string, syncer syncHermes) *Runtime {
 	_, portText, _ := net.SplitHostPort(listen)
 	port, _ := strconv.Atoi(portText)
 	return &Runtime{
 		version: version, listen: listen, port: port, dataDir: dataDir,
-		startedAt: time.Now(), actions: make(chan Action, 1),
+		startedAt: time.Now(), actions: make(chan Action, 1), sync: syncer,
 	}
 }
 
@@ -59,7 +91,8 @@ func (runtime *Runtime) Status(context.Context) (Status, error) {
 	defer runtime.mu.Unlock()
 	return Status{
 		Running: true, Version: runtime.version, Listen: runtime.listen, Port: runtime.port,
-		PID: os.Getpid(), DataDir: runtime.dataDir, Uptime: time.Since(runtime.startedAt), Pending: runtime.pending,
+		PID: os.Getpid(), DataDir: runtime.dataDir, Uptime: time.Since(runtime.startedAt),
+		Pending: runtime.pending, Syncing: runtime.syncing,
 	}, nil
 }
 
@@ -69,7 +102,7 @@ func (runtime *Runtime) Request(action Action) error {
 	}
 	runtime.mu.Lock()
 	defer runtime.mu.Unlock()
-	if runtime.pending != "" {
+	if runtime.pending != "" || runtime.syncing {
 		return ErrActionPending
 	}
 	runtime.pending = action
@@ -77,6 +110,25 @@ func (runtime *Runtime) Request(action Action) error {
 	// the listener closes; no client-side JavaScript or second control process.
 	time.AfterFunc(150*time.Millisecond, func() { runtime.actions <- action })
 	return nil
+}
+
+func (runtime *Runtime) SyncHermes(ctx context.Context) (SyncResult, error) {
+	runtime.mu.Lock()
+	if runtime.pending != "" || runtime.syncing {
+		runtime.mu.Unlock()
+		return SyncResult{}, ErrActionPending
+	}
+	runtime.syncing = true
+	runtime.mu.Unlock()
+	defer func() {
+		runtime.mu.Lock()
+		runtime.syncing = false
+		runtime.mu.Unlock()
+	}()
+	if runtime.sync == nil {
+		return SyncResult{}, fmt.Errorf("Hermes sync is unavailable")
+	}
+	return runtime.sync(ctx)
 }
 
 func (runtime *Runtime) Next(ctx context.Context) (Action, error) {
@@ -96,4 +148,18 @@ func (runtime *Runtime) MarkReady() {
 	if runtime.pending == ActionRestart {
 		runtime.pending = ""
 	}
+}
+
+func defaultHermesHome() string {
+	if configured := strings.TrimSpace(os.Getenv("HERMES_HOME")); configured != "" {
+		return configured
+	}
+	if localAppData := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); localAppData != "" {
+		return filepath.Join(localAppData, "hermes")
+	}
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "hermes"
+	}
+	return filepath.Join(configDir, "hermes")
 }

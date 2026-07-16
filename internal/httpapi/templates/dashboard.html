@@ -24,6 +24,10 @@
         <p class="muted">Version {{.System.Version}} · PID {{.System.PID}} · up {{.System.Uptime}}</p>
       </div>
       <div class="system-actions">
+        <form method="post" action="/ui/hermes/sync">
+          <input type="hidden" name="csrf" value="{{.CSRFToken}}">
+          <button type="submit" {{if .System.Syncing}}disabled{{end}}>Discover &amp; connect agents</button>
+        </form>
         <form method="post" action="/ui/system/action">
           <input type="hidden" name="csrf" value="{{.CSRFToken}}">
           <button class="quiet" name="action" value="restart" type="submit">Restart Cortex</button>

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cortex · Agents connected</title>
+  <link rel="stylesheet" href="/static/cortex.css">
+</head>
+<body class="login-shell">
+  <main class="login-card" role="status">
+    <p class="eyebrow">HERMES CONNECTOR</p>
+    <h1>{{.Count}} agents connected</h1>
+    <p>{{range $index, $agent := .Agents}}{{if $index}} · {{end}}{{$agent}}{{end}}</p>
+    <p class="muted">A rollback snapshot was saved at <code>{{.BackupDir}}</code>.</p>
+    <p><a href="/">Return to dashboard</a></p>
+  </main>
+</body>
+</html>

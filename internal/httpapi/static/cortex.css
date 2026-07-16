@@ -14,6 +14,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 sys
 button, input, select { font: inherit; }
 a { color: inherit; }
 button { border: 0; border-radius: .55rem; padding: .65rem .9rem; background: var(--mint); color: #07120c; cursor: pointer; font-weight: 700; }
+button:disabled { cursor: wait; opacity: .55; }
 button.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 button.danger { background: transparent; color: var(--red); border: 1px solid color-mix(in srgb, var(--red) 45%, transparent); }
 input, select { width: 100%; border: 1px solid var(--line); border-radius: .55rem; padding: .7rem .8rem; background: #0f1412; color: var(--text); }

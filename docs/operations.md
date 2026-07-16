@@ -15,7 +15,14 @@ Windows autostart is registered in
 the current user's `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` key;
 administrator permission is not required.
 
-## Daily checks
+## Daily use
+
+Open **Cortex Dashboard** from the Windows Start Menu. The shortcut checks
+`/v1/health`, starts the installed service only when needed, and opens the
+configured loopback URL. Use the dashboard for memory search/review,
+Hermes-agent discovery, restart, and graceful stop.
+
+The commands below remain operator diagnostics, not daily requirements:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:7777/v1/health
@@ -26,7 +33,7 @@ hermes memory status
 `service status` reports autostart registration. The health endpoint above is
 the authoritative runtime readiness check.
 
-Open `http://127.0.0.1:7777/` for the review queue and per-memory event history.
+Open `http://127.0.0.1:7777/` directly only when diagnosing the shortcut.
 Generate a new administrator login token when needed:
 
 ```powershell
@@ -37,7 +44,8 @@ Only the printed token is sensitive. Cortex persists its SHA-256 hash.
 
 ## Add or refresh Hermes profiles
 
-Run connector sync after creating a profile:
+Press **Discover & connect agents** in the dashboard after creating a profile.
+It uses the same transactional connector sync as the operator command:
 
 ```powershell
 bin\cortex.exe connector sync hermes `

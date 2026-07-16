@@ -8,7 +8,7 @@ import (
 	"cortex.local/cortex/internal/autostart"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))

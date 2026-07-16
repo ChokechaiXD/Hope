@@ -4,7 +4,7 @@ Cortex is a standalone, local-first shared memory hub for AI agents. It keeps
 memory records, scores, usage events, reviews, and connector credentials under
 the user's control. Agent frameworks are adapters; they never own the database.
 
-## What v0.1 provides
+## What v0.2 provides
 
 - One Go executable and one SQLite database
 - WAL mode, FTS5 search, versioned schema migrations
@@ -15,8 +15,14 @@ the user's control. Agent frameworks are adapters; they never own the database.
 - Stable memory keys with immutable revisions instead of duplicate records
 - Append-only audit events
 - Bearer-token identity with SHA-256 hashes at rest
-- Local dashboard with opaque sessions, CSRF protection, and per-memory history
+- No-code local dashboard with opaque sessions, CSRF protection, runtime controls,
+  one-click Hermes agent discovery, and per-memory history
+- Memory Explorer with FTS5 search and lifecycle, kind, scope, project/domain,
+  and creator filters
+- Token-budgeted recall before usage is recorded, so trimmed memories do not
+  distort feedback or learning scores
 - User-level Windows autostart with no administrator permission required
+- Start Menu shortcut that starts Cortex only when needed and opens the dashboard
 - Embedded Hermes connector installer
 - Read-only Holographic importer; imported facts stay candidates
 
@@ -45,8 +51,15 @@ bin\cortex.exe service start
 its SHA-256 hash. The default data directory is `%LOCALAPPDATA%\Cortex`, and the
 default listener is `127.0.0.1:7777`.
 
-Open `http://127.0.0.1:7777/`, sign in with an administrator token, and review
-candidate memories from the dashboard.
+After the one-time setup, open **Cortex Dashboard** from the Windows Start Menu.
+It reuses the configured loopback port, starts Cortex only when health checks say
+it is down, and opens the browser. Sign in with an administrator token once;
+the browser keeps an opaque local session instead of storing the bearer token.
+
+Daily work is dashboard-only: search and review memories, restart or stop Cortex,
+and press **Discover & connect agents** whenever a new Hermes profile appears.
+The connector action creates a timestamped rollback snapshot before changing any
+profile. No terminal is needed for these operations.
 
 Issue a fresh dashboard token without opening any connector config:
 
@@ -54,12 +67,11 @@ Issue a fresh dashboard token without opening any connector config:
 bin\cortex.exe agent token --id mika
 ```
 
-When a new Hermes profile appears, run the same `connector sync hermes` command
-again. Existing valid profile tokens are reused. New profiles receive isolated
-tokens and the same standalone Cortex endpoint. A running Cortex server reloads
-new regular-agent credentials automatically; restart only when granting a new
-governor role. Connector sync creates a timestamped rollback snapshot and
-restores every affected profile automatically if any profile fails.
+Existing valid profile tokens are reused. New profiles receive isolated tokens
+and the same standalone Cortex endpoint. A running Cortex server reloads new
+regular-agent credentials automatically; restart only when granting a new
+governor role. Connector sync restores every affected profile automatically if
+any profile fails.
 
 ## Import Holographic memory
 
@@ -100,6 +112,6 @@ python -m unittest discover -s connectors\hermes\tests -p "test_*.py"
 go vet ./...
 ```
 
-See [Architecture](docs/architecture.md) and [v0.1 specification](docs/spec.md)
+See [Architecture](docs/architecture.md) and [core specification](docs/spec.md)
 for module boundaries and invariants. See [Operations](docs/operations.md) for
 live status, agent onboarding, upgrades, and rollback.
