@@ -24,6 +24,10 @@ configured loopback URL with a 30-second, one-time local session. It does not
 place an agent bearer token in the browser or command output. Use the dashboard for memory search/review,
 Hermes-agent discovery, restart, and graceful stop.
 
+Alternatively, double-click `Start Cortex.bat` from the Cortex folder. It uses
+the same installed executable and health-aware `open` command as the Start Menu
+shortcut.
+
 The commands below remain operator diagnostics, not daily requirements:
 
 ```powershell

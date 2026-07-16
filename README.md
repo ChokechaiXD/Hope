@@ -65,6 +65,10 @@ single-use code for an opaque browser session. Agent bearer tokens never enter
 the URL, browser storage, or launcher logs. The manual token form remains an
 emergency fallback.
 
+`Start Cortex.bat` in the repository provides the same one-click flow for users
+who prefer a batch file. It calls the installed launcher, reuses the configured
+port, and exits immediately.
+
 Daily work is dashboard-only: search and review memories, restart or stop Cortex,
 and press **Discover & connect agents** whenever a new Hermes profile appears.
 The connector action creates a timestamped rollback snapshot before changing any
