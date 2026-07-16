@@ -85,9 +85,15 @@ func Sync(options SyncOptions) (SyncResult, error) {
 		if err := installProvider(profile.Home); err != nil {
 			return rollbackSync(result, snapshot, fmt.Errorf("install connector for %s: %w", profile.AgentID, err))
 		}
-		if err := writeConnectorConfig(profile.Home, connectorConfig{
-			URL: options.ServerURL, Token: tokens[profile.AgentID], AgentID: profile.AgentID,
-		}); err != nil {
+		connector, document, readErr := readConnectorConfig(profile.Home)
+		if readErr != nil {
+			return rollbackSync(result, snapshot, fmt.Errorf("read connector config for %s: %w", profile.AgentID, readErr))
+		}
+		applyProfileSettings(&connector, settingsFromConfig(profile.AgentID, connector, document))
+		connector.URL = options.ServerURL
+		connector.Token = tokens[profile.AgentID]
+		connector.AgentID = profile.AgentID
+		if err := writeConnectorConfig(profile.Home, connector); err != nil {
 			return rollbackSync(result, snapshot, fmt.Errorf("configure connector for %s: %w", profile.AgentID, err))
 		}
 		if options.Activate {

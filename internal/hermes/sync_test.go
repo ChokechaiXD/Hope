@@ -103,6 +103,16 @@ func TestSyncInstallsAndActivatesAllHermesProfiles(t *testing.T) {
 		t.Fatalf("legacy database snapshot = %q, err=%v", archived, err)
 	}
 
+	if _, err := UpdateProfileSettings(UpdateProfileSettingsOptions{
+		HermesHome: hermesHome, DataDir: dataDir, RootAgent: "mika",
+		Settings: ProfileSettings{
+			AgentID: "mika", DefaultProject: "cortex", DefaultDomain: "orchestration",
+			AutoCaptureEnabled: false, AutoCaptureEveryTurns: 10, AutoCaptureMaxChars: 2000,
+			PrefetchTokenBudget: 500, RecallTokenBudget: 900,
+		},
+	}); err != nil {
+		t.Fatalf("configure connector before replay: %v", err)
+	}
 	before, err := os.ReadFile(filepath.Join(hermesHome, "cortex.json"))
 	if err != nil {
 		t.Fatalf("read connector config before replay: %v", err)
