@@ -26,6 +26,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runAgent(args[1:], stdout, stderr)
 	case "serve":
 		return runServe(args[1:], stdout, stderr)
+	case "open":
+		return runOpen(args[1:], stdout, stderr)
 	case "service":
 		return runService(args[1:], stdout, stderr, autostart.New())
 	case "connector":
@@ -55,6 +57,7 @@ Usage:
   cortex connector sync hermes --home HERMES_HOME [--data-dir DIR]
   cortex import holographic --database MEMORY_STORE_DB --agent AGENT [--project PROJECT]
   cortex serve [--data-dir DIR] [--listen ADDRESS]
+  cortex open [--data-dir DIR]
   cortex service install [--data-dir DIR]
   cortex service start [--data-dir DIR]
   cortex service status|uninstall

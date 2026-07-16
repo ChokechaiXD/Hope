@@ -246,6 +246,69 @@ func TestServiceStartDoesNotSpawnDuplicateWhenAlreadyHealthy(t *testing.T) {
 	}
 }
 
+func TestOpenDashboardStartsOnlyWhenNeededAndOpensConfiguredLoopbackURL(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	controller := &fakeServiceController{}
+	probes := 0
+	checker := readinessChecker{
+		probe: func(context.Context, string) error {
+			probes++
+			if probes == 1 {
+				return errors.New("not running")
+			}
+			return nil
+		},
+		timeout: 100 * time.Millisecond, interval: time.Millisecond,
+	}
+	var opened string
+	openURL := func(_ context.Context, rawURL string) error {
+		opened = rawURL
+		return nil
+	}
+	var stdout, stderr bytes.Buffer
+	code := runOpenWithDependencies(
+		[]string{"--data-dir", dataDir}, &stdout, &stderr, controller, checker, openURL,
+	)
+	if code != 0 || controller.startedDataDir != dataDir || opened != "http://127.0.0.1:7777/" {
+		t.Fatalf("open exit=%d started=%q opened=%q stdout=%s stderr=%s", code, controller.startedDataDir, opened, stdout.String(), stderr.String())
+	}
+}
+
+func TestOpenDashboardDoesNotSpawnDuplicateOrAcceptTrailingArguments(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	controller := &fakeServiceController{}
+	checker := readinessChecker{probe: func(context.Context, string) error { return nil }}
+	opened := 0
+	openURL := func(context.Context, string) error { opened++; return nil }
+	var stdout, stderr bytes.Buffer
+	code := runOpenWithDependencies(
+		[]string{"--data-dir", dataDir}, &stdout, &stderr, controller, checker, openURL,
+	)
+	if code != 0 || controller.startedDataDir != "" || opened != 1 {
+		t.Fatalf("healthy open exit=%d started=%q opened=%d stderr=%s", code, controller.startedDataDir, opened, stderr.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	opened = 0
+	code = runOpenWithDependencies(
+		[]string{"--data-dir", dataDir, "ignored"}, &stdout, &stderr, controller, checker, openURL,
+	)
+	if code != 2 || opened != 0 {
+		t.Fatalf("trailing argument exit=%d opened=%d stderr=%s", code, opened, stderr.String())
+	}
+}
+
 func TestServiceInstallRejectsTrailingArguments(t *testing.T) {
 	t.Parallel()
 
@@ -293,7 +356,10 @@ type fakeServiceController struct {
 
 func (controller *fakeServiceController) Install(_ context.Context, dataDir string) (autostart.InstallResult, error) {
 	controller.installedDataDir = dataDir
-	return autostart.InstallResult{EntryName: autostart.EntryName, Executable: filepath.Join(dataDir, "bin", "cortex.exe")}, nil
+	return autostart.InstallResult{
+		EntryName: autostart.EntryName, Executable: filepath.Join(dataDir, "bin", "cortex.exe"),
+		Shortcut: autostart.ShortcutName,
+	}, nil
 }
 
 func (controller *fakeServiceController) Start(_ context.Context, dataDir string) (string, error) {

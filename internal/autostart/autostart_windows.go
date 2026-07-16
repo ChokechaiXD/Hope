@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,13 +17,16 @@ import (
 )
 
 const (
-	EntryName = "Cortex Memory Hub"
-	RunKey    = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+	EntryName    = "Cortex Memory Hub"
+	ShortcutName = "Cortex Dashboard.lnk"
+	RunKey       = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+	shortcutTemp = "Cortex Dashboard.new.lnk"
 )
 
 type InstallResult struct {
 	EntryName  string
 	Executable string
+	Shortcut   string
 }
 
 type Controller struct {
@@ -65,7 +69,13 @@ func (controller *Controller) Install(ctx context.Context, dataDir string) (Inst
 	if err != nil {
 		return InstallResult{}, commandError("register Cortex autostart", output, err)
 	}
-	return InstallResult{EntryName: EntryName, Executable: destination}, nil
+	output, err = controller.run(ctx, "powershell.exe",
+		"-NoProfile", "-NonInteractive", "-Command", shortcutInstallScript(destination, dataDir),
+	)
+	if err != nil {
+		return InstallResult{}, commandError("install Cortex dashboard shortcut", output, err)
+	}
+	return InstallResult{EntryName: EntryName, Executable: destination, Shortcut: ShortcutName}, nil
 }
 
 func (controller *Controller) Start(_ context.Context, dataDir string) (string, error) {
@@ -89,11 +99,48 @@ func (controller *Controller) Status(ctx context.Context) (string, error) {
 }
 
 func (controller *Controller) Uninstall(ctx context.Context) error {
-	output, err := controller.run(ctx, "reg.exe", "DELETE", RunKey, "/V", EntryName, "/F")
-	if err != nil {
-		return commandError("remove Cortex autostart", output, err)
+	registryOutput, registryErr := controller.run(ctx, "reg.exe", "DELETE", RunKey, "/V", EntryName, "/F")
+	if registryErr != nil {
+		registryErr = commandError("remove Cortex autostart", registryOutput, registryErr)
 	}
-	return nil
+	shortcutOutput, shortcutErr := controller.run(ctx, "powershell.exe",
+		"-NoProfile", "-NonInteractive", "-Command", shortcutRemoveScript(),
+	)
+	if shortcutErr != nil {
+		shortcutErr = commandError("remove Cortex dashboard shortcut", shortcutOutput, shortcutErr)
+	}
+	return errors.Join(registryErr, shortcutErr)
+}
+
+func shortcutInstallScript(executable, dataDir string) string {
+	dashboardScript := fmt.Sprintf(
+		"Start-Process -WindowStyle Hidden -FilePath %s -ArgumentList @('open','--data-dir',%s)",
+		powerShellLiteral(executable), powerShellLiteral(dataDir),
+	)
+	arguments := "-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand " + encodePowerShell(dashboardScript)
+	return strings.Join([]string{
+		"$programs=[Environment]::GetFolderPath('Programs')",
+		"$link=Join-Path $programs " + powerShellLiteral(ShortcutName),
+		"$temp=Join-Path $programs " + powerShellLiteral(shortcutTemp),
+		"$shell=New-Object -ComObject WScript.Shell",
+		"$shortcut=$shell.CreateShortcut($temp)",
+		"$shortcut.TargetPath=(Get-Command powershell.exe).Source",
+		"$shortcut.Arguments=" + powerShellLiteral(arguments),
+		"$shortcut.WorkingDirectory=" + powerShellLiteral(dataDir),
+		"$shortcut.Description='Open Cortex Dashboard'",
+		"$shortcut.IconLocation=" + powerShellLiteral(executable+",0"),
+		"$shortcut.WindowStyle=7",
+		"$shortcut.Save()",
+		"Move-Item -LiteralPath $temp -Destination $link -Force",
+	}, ";")
+}
+
+func shortcutRemoveScript() string {
+	return strings.Join([]string{
+		"$programs=[Environment]::GetFolderPath('Programs')",
+		"$link=Join-Path $programs " + powerShellLiteral(ShortcutName),
+		"Remove-Item -LiteralPath $link -Force -ErrorAction SilentlyContinue",
+	}, ";")
 }
 
 func startupCommand(executable, dataDir string) string {
@@ -101,13 +148,16 @@ func startupCommand(executable, dataDir string) string {
 		"Start-Process -WindowStyle Hidden -FilePath %s -ArgumentList @('serve','--data-dir',%s)",
 		powerShellLiteral(executable), powerShellLiteral(dataDir),
 	)
+	return "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand " + encodePowerShell(script)
+}
+
+func encodePowerShell(script string) string {
 	encoded := utf16.Encode([]rune(script))
 	raw := make([]byte, len(encoded)*2)
 	for index, value := range encoded {
 		binary.LittleEndian.PutUint16(raw[index*2:], value)
 	}
-	return "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand " +
-		base64.StdEncoding.EncodeToString(raw)
+	return base64.StdEncoding.EncodeToString(raw)
 }
 
 func powerShellLiteral(value string) string {

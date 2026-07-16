@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -34,7 +35,7 @@ func TestInstallCopiesBinaryAndRegistersUserLogonEntry(t *testing.T) {
 		t.Fatalf("install autostart: %v", err)
 	}
 	wantExecutable := filepath.Join(dataDir, "bin", "cortex.exe")
-	if result.Executable != wantExecutable || result.EntryName != EntryName {
+	if result.Executable != wantExecutable || result.EntryName != EntryName || result.Shortcut != ShortcutName {
 		t.Fatalf("install result = %#v", result)
 	}
 	installed, err := os.ReadFile(wantExecutable)
@@ -44,7 +45,7 @@ func TestInstallCopiesBinaryAndRegistersUserLogonEntry(t *testing.T) {
 	if string(installed) != "cortex-binary" {
 		t.Fatalf("installed binary = %q", installed)
 	}
-	if len(commands) != 1 || commands[0].name != "reg.exe" {
+	if len(commands) != 2 || commands[0].name != "reg.exe" || commands[1].name != "powershell.exe" {
 		t.Fatalf("commands = %#v", commands)
 	}
 	wantArgs := []string{
@@ -52,6 +53,12 @@ func TestInstallCopiesBinaryAndRegistersUserLogonEntry(t *testing.T) {
 	}
 	if !slices.Equal(commands[0].args, wantArgs) {
 		t.Fatalf("registry args = %#v, want %#v", commands[0].args, wantArgs)
+	}
+	shortcutCommand := strings.Join(commands[1].args, " ")
+	if !strings.Contains(shortcutCommand, ShortcutName) ||
+		!strings.Contains(shortcutCommand, "CreateShortcut") ||
+		!strings.Contains(shortcutCommand, "EncodedCommand") {
+		t.Fatalf("shortcut command = %q", shortcutCommand)
 	}
 }
 
@@ -145,16 +152,17 @@ func TestStatusQueriesRegisteredCortexEntry(t *testing.T) {
 func TestUninstallDeletesOnlyRegisteredCortexEntry(t *testing.T) {
 	t.Parallel()
 
-	var command recordedCommand
+	var commands []recordedCommand
 	controller := newController(nil, func(_ context.Context, name string, args ...string) ([]byte, error) {
-		command = recordedCommand{name: name, args: slices.Clone(args)}
+		commands = append(commands, recordedCommand{name: name, args: slices.Clone(args)})
 		return []byte("SUCCESS"), nil
 	}, nil)
 	if err := controller.Uninstall(context.Background()); err != nil {
 		t.Fatalf("uninstall autostart task: %v", err)
 	}
-	if command.name != "reg.exe" ||
-		!slices.Equal(command.args, []string{"DELETE", RunKey, "/V", EntryName, "/F"}) {
-		t.Fatalf("command=%#v", command)
+	if len(commands) != 2 || commands[0].name != "reg.exe" ||
+		!slices.Equal(commands[0].args, []string{"DELETE", RunKey, "/V", EntryName, "/F"}) ||
+		commands[1].name != "powershell.exe" || !strings.Contains(strings.Join(commands[1].args, " "), ShortcutName) {
+		t.Fatalf("commands=%#v", commands)
 	}
 }

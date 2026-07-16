@@ -7,11 +7,15 @@ import (
 	"fmt"
 )
 
-const EntryName = "Cortex Memory Hub"
+const (
+	EntryName    = "Cortex Memory Hub"
+	ShortcutName = "Cortex Dashboard.lnk"
+)
 
 type InstallResult struct {
 	EntryName  string
 	Executable string
+	Shortcut   string
 }
 
 type Controller struct{}

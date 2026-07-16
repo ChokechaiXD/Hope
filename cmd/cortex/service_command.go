@@ -53,7 +53,7 @@ func runServiceWithReadiness(
 			fmt.Fprintf(stderr, "install Cortex service: %v\n", err)
 			return 1
 		}
-		fmt.Fprintf(stdout, "entry=%s\nexecutable=%s\n", result.EntryName, result.Executable)
+		fmt.Fprintf(stdout, "entry=%s\nexecutable=%s\nshortcut=%s\n", result.EntryName, result.Executable, result.Shortcut)
 		return 0
 	case "start":
 		flags := flag.NewFlagSet("service start", flag.ContinueOnError)
