@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cortex · สรุปจากผู้ช่วยโมเดล</title>
+  <link rel="stylesheet" href="/static/cortex.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">ความเห็นประกอบ · ไม่ใช่หลักฐาน</p><h1>Cortex</h1></div>
+    <a class="back-link" href="/">กลับหน้าหลัก</a>
+  </header>
+  <main>
+    <article class="advisor-result">
+      <p class="eyebrow">สรุปเรื่องสำคัญ</p>
+      <h2>มุมมองจากผู้ช่วยโมเดล</h2>
+      <p class="advisor-summary">{{.Summary}}</p>
+      <p class="muted">{{.Model}} · ส่ง {{.InputTokens}} tokens · รับ {{.OutputTokens}} tokens</p>
+    </article>
+    {{if .Items}}
+    <section class="advisor-result-items" aria-label="ความเห็นรายความรู้">
+      {{range .Items}}
+      <article>
+        <div class="memory-meta"><span class="status">{{.Verdict}}</span></div>
+        <h3><a href="/ui/memories/{{.MemoryID}}">{{.Title}}</a></h3>
+        <p>{{.Reason}}</p>
+      </article>
+      {{end}}
+    </section>
+    {{end}}
+    <p class="notice">โปรดเปิดดูแหล่งอ้างอิงก่อนเปลี่ยนสถานะความรู้ โมเดลไม่มีสิทธิ์อนุมัติหรือแก้กฎหลัก</p>
+  </main>
+</body>
+</html>

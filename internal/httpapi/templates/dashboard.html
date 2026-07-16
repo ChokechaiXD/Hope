@@ -53,6 +53,153 @@
       <article><strong>{{.Canonical}}</strong><span>กฎหลัก</span></article>
     </section>
 
+    {{if .CuratorNotice}}<p class="notice" role="status">{{.CuratorNotice}}</p>{{end}}
+    {{if .Curator}}
+    <section class="curator-panel" aria-labelledby="curator-title">
+      <div class="curator-head">
+        <div>
+          <p class="eyebrow">ผู้ช่วยจัดระเบียบ · ไม่ใช้ API</p>
+          <h2 id="curator-title">Cortex แนะนำให้ดูอะไร</h2>
+          <p class="muted">โหมดปัจจุบัน: {{.Curator.ModeLabel}} · กฎหลักทุกข้อยังลดระดับหรือแทนที่ได้</p>
+        </div>
+        <form method="post" action="/ui/curator/run" class="curator-run-actions">
+          <input type="hidden" name="csrf" value="{{.CSRFToken}}">
+          <button class="quiet" type="submit">วิเคราะห์ตอนนี้</button>
+          {{if gt .Curator.Ready 0}}<button name="apply_safe" value="yes" type="submit">รับเฉพาะรายการปลอดภัย {{.Curator.Ready}} รายการ</button>{{end}}
+        </form>
+      </div>
+
+      <div class="curator-stats" aria-label="ผลวิเคราะห์โดยผู้ช่วยจัดระเบียบ">
+        <div><strong>{{.Curator.Ready}}</strong><span>พร้อมรับ</span></div>
+        <div><strong>{{.Curator.Attention}}</strong><span>ควรตรวจ</span></div>
+        <div><strong>{{.Curator.Waiting}}</strong><span>รอหลักฐาน</span></div>
+        <div><strong>{{.Curator.Protected}}</strong><span>ให้คนตัดสินใจ</span></div>
+      </div>
+
+      {{if .Curator.LastRun}}
+      <p class="curator-last-run {{if .Curator.LastRun.Error}}notice{{end}}">
+        วิเคราะห์ล่าสุด {{.Curator.LastRun.When}} · รับอัตโนมัติ {{.Curator.LastRun.Applied}} รายการ · พบเรื่องควรดู {{.Curator.LastRun.Attention}} รายการ
+        {{if .Curator.LastRun.Error}}<br>รอบล่าสุดทำงานไม่ครบ: {{.Curator.LastRun.Error}}{{end}}
+      </p>
+      {{end}}
+
+      {{if .Curator.Suggestions}}
+      <div class="curator-suggestions">
+        {{range .Curator.Suggestions}}
+        <article class="curator-item curator-{{.Category}}">
+          <div class="memory-meta"><span class="status">{{.CategoryLabel}}</span><span>{{.KindLabel}}</span><span>{{.AppliesTo}}</span></div>
+          <h3><a href="/ui/memories/{{.ID}}">{{.Title}}</a></h3>
+          <p>{{.Reason}}</p>
+          <p class="muted">{{.Evidence}} · แนะนำ: {{.ActionLabel}}</p>
+        </article>
+        {{end}}
+      </div>
+      {{else}}
+      <p class="curator-clear">ยังไม่มีเรื่องที่ต้องจัดการเป็นพิเศษ</p>
+      {{end}}
+
+      <details class="curator-settings">
+        <summary>ตั้งค่าว่าจะให้ Cortex ช่วยมากแค่ไหน</summary>
+        <form method="post" action="/ui/curator/settings" class="curator-settings-form">
+          <input type="hidden" name="csrf" value="{{.CSRFToken}}">
+          <label><span>ระดับการช่วย</span><select name="mode">
+            <option value="manual" {{if .Curator.Manual}}selected{{end}}>ให้พี่ตัดสินใจเองทั้งหมด</option>
+            <option value="assisted" {{if .Curator.Assisted}}selected{{end}}>ช่วยจัดคิวและเตือน แต่ไม่อนุมัติเอง</option>
+            <option value="automatic" {{if .Curator.Automatic}}selected{{end}}>รับเฉพาะรายการที่ผ่านกฎเหล็ก</option>
+          </select></label>
+          <label><span>วิเคราะห์ทุกกี่ความรู้ใหม่</span><select name="run_every_candidates">
+            <option value="5" {{if eq .Curator.Settings.RunEveryCandidates 5}}selected{{end}}>5 รายการ</option>
+            <option value="10" {{if eq .Curator.Settings.RunEveryCandidates 10}}selected{{end}}>10 รายการ</option>
+            <option value="20" {{if eq .Curator.Settings.RunEveryCandidates 20}}selected{{end}}>20 รายการ</option>
+            <option value="50" {{if eq .Curator.Settings.RunEveryCandidates 50}}selected{{end}}>50 รายการ</option>
+          </select></label>
+          <label><span>จำนวนที่วิเคราะห์ต่อรอบ</span><select name="batch_limit">
+            <option value="25" {{if eq .Curator.Settings.BatchLimit 25}}selected{{end}}>25 รายการ</option>
+            <option value="50" {{if eq .Curator.Settings.BatchLimit 50}}selected{{end}}>50 รายการ</option>
+            <option value="100" {{if eq .Curator.Settings.BatchLimit 100}}selected{{end}}>100 รายการ</option>
+            <option value="200" {{if eq .Curator.Settings.BatchLimit 200}}selected{{end}}>200 รายการ</option>
+          </select></label>
+          <label><span>เอเจนต์อิสระต้องเห็นตรงกัน</span><select name="min_agreement">
+            <option value="2" {{if eq .Curator.Settings.MinAgreement 2}}selected{{end}}>2 เอเจนต์</option>
+            <option value="3" {{if eq .Curator.Settings.MinAgreement 3}}selected{{end}}>3 เอเจนต์</option>
+            <option value="4" {{if eq .Curator.Settings.MinAgreement 4}}selected{{end}}>4 เอเจนต์</option>
+          </select></label>
+          <button type="submit">บันทึกการตั้งค่า</button>
+        </form>
+        <p class="muted">กฎเหล็ก: ไม่อนุมัติข้อมูลทุกเอเจนต์ ข้อมูลส่วนตัว ความชอบ สถานะงาน หรือข้อมูลนำเข้าเอง และไม่ตั้งรายการใดเป็นกฎหลักอัตโนมัติ</p>
+      </details>
+    </section>
+    {{else if .CuratorErr}}
+    <p class="notice" role="alert">ผู้ช่วยจัดระเบียบยังทำงานไม่ได้: {{.CuratorErr}}</p>
+    {{end}}
+
+    {{if .AdvisorNotice}}<p class="notice" role="status">{{.AdvisorNotice}}</p>{{end}}
+    {{if .Advisor}}
+    <section class="advisor-panel" id="advisor-settings" aria-labelledby="advisor-title">
+      <div class="advisor-head">
+        <div>
+          <p class="eyebrow">ประตูตรวจชั้นที่สอง · เลือกใช้เท่านั้น</p>
+          <h2 id="advisor-title">ให้โมเดลช่วยสรุปเฉพาะเรื่องสำคัญ</h2>
+          {{if .Advisor.Settings.Enabled}}
+          <p class="muted">พร้อมใช้เมื่อพี่กดเรียก · {{.Advisor.Settings.Model}} · ไม่สามารถข้ามกฎเหล็กของ Curator</p>
+          {{else}}
+          <p class="muted">ปิดอยู่ · Curator แบบไม่เสีย token ยังทำงานตามปกติ</p>
+          {{end}}
+        </div>
+        {{if .Advisor.Settings.Enabled}}
+        <form method="post" action="/ui/advisor/run">
+          <input type="hidden" name="csrf" value="{{.CSRFToken}}">
+          <button type="submit">ขอให้โมเดลช่วยสรุปตอนนี้</button>
+        </form>
+        {{end}}
+      </div>
+      {{if .Advisor.LastRun}}
+      <p class="advisor-usage {{if .Advisor.LastRun.Error}}notice{{end}}">
+        ใช้ล่าสุด {{.Advisor.LastRun.When}} · {{.Advisor.LastRun.Model}} · ส่ง {{.Advisor.LastRun.InputTokens}} tokens · รับ {{.Advisor.LastRun.OutputTokens}} tokens
+        {{if .Advisor.LastRun.Error}}<br>รอบล่าสุดไม่สำเร็จ: {{.Advisor.LastRun.Error}}{{end}}
+      </p>
+      {{if .Advisor.LastRun.Summary}}<p class="advisor-last-summary"><strong>สรุปล่าสุด:</strong> {{.Advisor.LastRun.Summary}}</p>{{end}}
+      {{end}}
+      <details>
+        <summary>ตั้งค่าโมเดลและงบ token</summary>
+        <form method="post" action="/ui/advisor/settings" class="advisor-settings-form">
+          <input type="hidden" name="csrf" value="{{.CSRFToken}}">
+          <label class="check-field"><input type="checkbox" name="enabled" value="yes" {{if .Advisor.Settings.Enabled}}checked{{end}}> เปิดใช้เฉพาะเมื่อกดเรียก</label>
+          <label class="endpoint-field"><span>OpenAI-compatible endpoint ในเครื่อง</span><input name="endpoint" value="{{.Advisor.Settings.Endpoint}}" placeholder="http://127.0.0.1:20128/v1"></label>
+          <label class="model-field"><span>โมเดล</span><input name="model" list="advisor-models" value="{{.Advisor.Settings.Model}}" placeholder="กดโหลดรายการ แล้วเลือกโมเดล"></label>
+          <datalist id="advisor-models">{{range .Advisor.Models}}<option value="{{.ID}}">{{.OwnedBy}}</option>{{end}}</datalist>
+          <label><span>งบข้อมูลเข้า</span><select name="input_token_budget">
+            <option value="600" {{if eq .Advisor.Settings.InputTokenBudget 600}}selected{{end}}>ประหยัด · 600</option>
+            <option value="1200" {{if eq .Advisor.Settings.InputTokenBudget 1200}}selected{{end}}>สมดุล · 1,200</option>
+            <option value="2400" {{if eq .Advisor.Settings.InputTokenBudget 2400}}selected{{end}}>ละเอียด · 2,400</option>
+            <option value="4000" {{if eq .Advisor.Settings.InputTokenBudget 4000}}selected{{end}}>สูงสุด · 4,000</option>
+          </select></label>
+          <label><span>งบคำตอบ</span><select name="output_token_budget">
+            <option value="200" {{if eq .Advisor.Settings.OutputTokenBudget 200}}selected{{end}}>สั้น · 200</option>
+            <option value="350" {{if eq .Advisor.Settings.OutputTokenBudget 350}}selected{{end}}>สมดุล · 350</option>
+            <option value="600" {{if eq .Advisor.Settings.OutputTokenBudget 600}}selected{{end}}>ละเอียด · 600</option>
+            <option value="1000" {{if eq .Advisor.Settings.OutputTokenBudget 1000}}selected{{end}}>สูงสุด · 1,000</option>
+          </select></label>
+          <label><span>ระดับการวิเคราะห์</span><select name="effort">
+            <option value="auto" {{if .Advisor.EffortAuto}}selected{{end}}>Auto ตามจำนวนเรื่อง</option>
+            <option value="low" {{if .Advisor.EffortLow}}selected{{end}}>ต่ำ · เน้นประหยัด</option>
+            <option value="medium" {{if .Advisor.EffortMedium}}selected{{end}}>กลาง</option>
+            <option value="high" {{if .Advisor.EffortHigh}}selected{{end}}>สูง · ใช้เมื่อสำคัญจริง</option>
+          </select></label>
+          <div class="advisor-settings-actions">
+            <a class="quiet-link" href="/?refresh_models=1#advisor-settings">โหลดรายการโมเดลปัจจุบัน</a>
+            <button type="submit">บันทึกการตั้งค่า</button>
+          </div>
+        </form>
+        {{if .Advisor.ModelsLoaded}}<p class="muted">พบ {{len .Advisor.Models}} โมเดลจาก endpoint ปัจจุบัน รายการนี้ cache ชั่วคราวและไม่เขียนทับ config</p>{{end}}
+        {{if .Advisor.ModelsError}}<p class="notice" role="alert">โหลดโมเดลไม่ได้: {{.Advisor.ModelsError}}</p>{{end}}
+        <p class="muted">Cortex ส่งเฉพาะคำแนะนำที่กรองแล้ว ไม่ส่งบทสนทนาทั้ง session และคำตอบจากโมเดลเป็นเพียงความเห็นประกอบ ไม่ใช่หลักฐาน</p>
+      </details>
+    </section>
+    {{else if .AdvisorErr}}
+    <p class="notice" role="alert">ผู้ช่วยโมเดลยังทำงานไม่ได้: {{.AdvisorErr}}</p>
+    {{end}}
+
     <section class="section-head explorer-head">
       <div><p class="eyebrow">สมองที่สองที่ตรวจสอบย้อนหลังได้</p><h2>คลังความรู้</h2></div>
       <p class="muted">พบ {{.Matched}} รายการ · ความน่าเชื่อถือและประโยชน์ถูกติดตามแยกกัน</p>

@@ -47,11 +47,9 @@ func (hub *Hub) ImportCandidate(ctx context.Context, command ImportCommand) (Mem
 	if err != nil {
 		return Memory{}, false, err
 	}
-	if !created {
-		return memory, false, nil
-	}
 	if err := tx.Commit(); err != nil {
 		return Memory{}, false, fmt.Errorf("commit import: %w", err)
 	}
-	return memory, true, nil
+	hub.maybeCurate(ctx)
+	return memory, created, nil
 }

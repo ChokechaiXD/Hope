@@ -36,6 +36,10 @@ func (hub *Hub) Feedback(ctx context.Context, cmd FeedbackCommand) (Memory, erro
 		return Memory{}, ErrForbidden
 	}
 	truth, utility, eventType := applyFeedback(memory.TruthScore, memory.UtilityScore, cmd.Outcome)
+	metadataJSON, err := encodeJSON(map[string]any{"revision": memory.Revision})
+	if err != nil {
+		return Memory{}, fmt.Errorf("encode feedback metadata: %w", err)
+	}
 	eventID, err := newID("evt")
 	if err != nil {
 		return Memory{}, err
@@ -47,9 +51,10 @@ UPDATE memories SET truth_score = ?, utility_score = ?, updated_at = ? WHERE id 
 		return Memory{}, fmt.Errorf("update scores: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `
-INSERT INTO memory_events(id, memory_id, event_type, actor_id, session_id, reason, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)`, eventID, cmd.MemoryID, eventType,
-		cmd.AgentID, cmd.SessionID, cmd.Reason, now); err != nil {
+INSERT INTO memory_events(
+    id, memory_id, event_type, actor_id, session_id, reason, metadata_json, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, eventID, cmd.MemoryID, eventType,
+		cmd.AgentID, cmd.SessionID, cmd.Reason, metadataJSON, now); err != nil {
 		return Memory{}, fmt.Errorf("record feedback event: %w", err)
 	}
 	if err := recordRequest(ctx, tx, requestKey, "feedback", cmd.MemoryID, now); err != nil {

@@ -9,6 +9,7 @@ import (
 
 	"cortex.local/cortex/internal/controlcenter"
 	"cortex.local/cortex/internal/cortex"
+	"cortex.local/cortex/internal/intelligence"
 	"cortex.local/cortex/internal/localauth"
 )
 
@@ -18,6 +19,7 @@ type Server struct {
 	sessions *dashboardSessions
 	control  runtimeControl
 	launcher *localauth.Broker
+	advisor  intelligence.Advisor
 }
 
 func New(hub *cortex.Hub, auth Authenticator) http.Handler {
@@ -40,8 +42,19 @@ func NewWithControlAndLauncher(
 	control runtimeControl,
 	launcher *localauth.Broker,
 ) http.Handler {
+	return NewWithControlLauncherAndAdvisor(hub, auth, control, launcher, nil)
+}
+
+func NewWithControlLauncherAndAdvisor(
+	hub *cortex.Hub,
+	auth Authenticator,
+	control runtimeControl,
+	launcher *localauth.Broker,
+	advisor intelligence.Advisor,
+) http.Handler {
 	server := &Server{
-		hub: hub, auth: auth, sessions: newDashboardSessions(), control: control, launcher: launcher,
+		hub: hub, auth: auth, sessions: newDashboardSessions(), control: control,
+		launcher: launcher, advisor: advisor,
 	}
 	mux := http.NewServeMux()
 	staticFiles, _ := fs.Sub(dashboardAssets, "static")
@@ -53,6 +66,10 @@ func NewWithControlAndLauncher(
 	mux.HandleFunc("GET /ui/session", server.consumeDashboardSession)
 	mux.HandleFunc("POST /ui/system/action", server.systemAction)
 	mux.HandleFunc("POST /ui/hermes/sync", server.hermesSync)
+	mux.HandleFunc("POST /ui/curator/settings", server.curatorSettings)
+	mux.HandleFunc("POST /ui/curator/run", server.curatorRun)
+	mux.HandleFunc("POST /ui/advisor/settings", server.advisorSettings)
+	mux.HandleFunc("POST /ui/advisor/run", server.advisorRun)
 	mux.HandleFunc("GET /ui/memories/{memoryID}", server.dashboardDetail)
 	mux.HandleFunc("POST /ui/memories/{memoryID}/review", server.dashboardReview)
 	mux.HandleFunc("GET /v1/health", server.health)

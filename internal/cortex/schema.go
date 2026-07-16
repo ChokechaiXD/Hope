@@ -96,7 +96,77 @@ CREATE INDEX IF NOT EXISTS memories_stable_key_idx
 ON memories(scope, scope_key, memory_key, created_by);
 `
 
-var schemaMigrations = []string{schemaV1, schemaV2}
+const schemaV3 = `
+CREATE TABLE IF NOT EXISTS curator_settings (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    mode TEXT NOT NULL,
+    run_every_candidates INTEGER NOT NULL,
+    batch_limit INTEGER NOT NULL,
+    min_agreement INTEGER NOT NULL,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO curator_settings(
+    id, mode, run_every_candidates, batch_limit, min_agreement, updated_by, updated_at
+) VALUES (
+    1, 'manual', 10, 50, 2, 'system', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+);
+
+CREATE TABLE IF NOT EXISTS curator_runs (
+    id TEXT PRIMARY KEY,
+    mode TEXT NOT NULL,
+    trigger_type TEXT NOT NULL,
+    analyzed_count INTEGER NOT NULL,
+    ready_count INTEGER NOT NULL,
+    attention_count INTEGER NOT NULL,
+    applied_count INTEGER NOT NULL,
+    actor_id TEXT NOT NULL,
+    error_text TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS curator_runs_created_idx
+ON curator_runs(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS advisor_settings (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    enabled INTEGER NOT NULL,
+    endpoint TEXT NOT NULL,
+    model TEXT NOT NULL,
+    input_token_budget INTEGER NOT NULL,
+    output_token_budget INTEGER NOT NULL,
+    effort TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO advisor_settings(
+    id, enabled, endpoint, model, input_token_budget, output_token_budget,
+    effort, updated_by, updated_at
+) VALUES (
+    1, 0, 'http://127.0.0.1:20128/v1', '', 1200, 350,
+    'auto', 'system', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+);
+
+CREATE TABLE IF NOT EXISTS advisor_runs (
+    id TEXT PRIMARY KEY,
+    model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    response_json TEXT NOT NULL DEFAULT '{}',
+    error_text TEXT NOT NULL DEFAULT '',
+    actor_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS advisor_runs_created_idx
+ON advisor_runs(created_at DESC);
+`
+
+var schemaMigrations = []string{schemaV1, schemaV2, schemaV3}
 
 func openDatabase(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)

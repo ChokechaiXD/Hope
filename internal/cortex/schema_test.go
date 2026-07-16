@@ -20,8 +20,8 @@ func TestSchemaMigrationsTrackVersion(t *testing.T) {
 	if err := hub.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		t.Fatalf("read schema version: %v", err)
 	}
-	if version != 2 {
-		t.Fatalf("schema version = %d, want 2", version)
+	if version != 3 {
+		t.Fatalf("schema version = %d, want 3", version)
 	}
 }
 

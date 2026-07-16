@@ -12,7 +12,35 @@ import (
 	"testing"
 
 	"cortex.local/cortex/internal/cortex"
+	"cortex.local/cortex/internal/intelligence"
 )
+
+type fakeDashboardAdvisor struct {
+	modelCalls int
+	lastInput  intelligence.AdviceRequest
+}
+
+func (advisor *fakeDashboardAdvisor) Models(context.Context, string) ([]intelligence.Model, error) {
+	advisor.modelCalls++
+	return []intelligence.Model{{ID: "reviewer", OwnedBy: "9router"}}, nil
+}
+
+func (advisor *fakeDashboardAdvisor) Advise(
+	_ context.Context,
+	input intelligence.AdviceRequest,
+) (intelligence.Advice, error) {
+	advisor.lastInput = input
+	return intelligence.Advice{
+		Summary: "ควรเปิดดูหลักฐานก่อนรับเป็นความรู้ร่วม",
+		Assessments: []intelligence.Assessment{{
+			MemoryID: input.Suggestions[0].MemoryID,
+			Verdict:  "support",
+			Reason:   "มีเอเจนต์อิสระเห็นตรงกันและมีแหล่งอ้างอิง",
+		}},
+		InputTokens: 410, OutputTokens: 92,
+		RawJSON: `{"summary":"ควรเปิดดูหลักฐานก่อนรับเป็นความรู้ร่วม","items":[]}`,
+	}, nil
+}
 
 func TestDashboardLoginAndReview(t *testing.T) {
 	t.Parallel()
@@ -80,7 +108,10 @@ func TestDashboardLoginAndReview(t *testing.T) {
 		t.Fatalf("dashboard status=%d body=%s", dashboard.Code, dashboard.Body.String())
 	}
 	dashboardBody := dashboard.Body.String()
-	for _, expected := range []string{"คลังความรู้", "รอตรวจ", "ข้อตัดสินใจ", "โปรเจกต์ · novelclaw", "รายละเอียดขั้นสูง"} {
+	for _, expected := range []string{
+		"คลังความรู้", "รอตรวจ", "ข้อตัดสินใจ", "โปรเจกต์ · novelclaw",
+		"รายละเอียดขั้นสูง", "Cortex แนะนำให้ดูอะไร", "รอหลักฐาน",
+	} {
 		if !strings.Contains(dashboardBody, expected) {
 			t.Fatalf("human dashboard omitted %q: %s", expected, dashboardBody)
 		}
@@ -93,6 +124,39 @@ func TestDashboardLoginAndReview(t *testing.T) {
 		t.Fatalf("dashboard did not render a CSRF token: %s", dashboard.Body.String())
 	}
 	csrfToken := csrfMatch[1]
+	settingsForm := url.Values{
+		"csrf": {csrfToken}, "mode": {"assisted"}, "run_every_candidates": {"5"},
+		"batch_limit": {"25"}, "min_agreement": {"3"},
+	}
+	settingsRequest := httptest.NewRequest(
+		http.MethodPost, "/ui/curator/settings", strings.NewReader(settingsForm.Encode()),
+	)
+	settingsRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	settingsRequest.AddCookie(cookies[0])
+	settingsResponse := httptest.NewRecorder()
+	handler.ServeHTTP(settingsResponse, settingsRequest)
+	if settingsResponse.Code != http.StatusSeeOther {
+		t.Fatalf("curator settings status=%d body=%s", settingsResponse.Code, settingsResponse.Body.String())
+	}
+	curatorStatus, err := hub.CuratorStatus(context.Background(), "mika")
+	if err != nil || curatorStatus.Settings.Mode != cortex.CuratorAssisted || curatorStatus.Settings.MinAgreement != 3 {
+		t.Fatalf("curator settings = %#v error=%v", curatorStatus.Settings, err)
+	}
+
+	runForm := url.Values{"csrf": {csrfToken}}
+	runRequest := httptest.NewRequest(http.MethodPost, "/ui/curator/run", strings.NewReader(runForm.Encode()))
+	runRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	runRequest.AddCookie(cookies[0])
+	runResponse := httptest.NewRecorder()
+	handler.ServeHTTP(runResponse, runRequest)
+	if runResponse.Code != http.StatusSeeOther {
+		t.Fatalf("curator run status=%d body=%s", runResponse.Code, runResponse.Body.String())
+	}
+	curatorStatus, err = hub.CuratorStatus(context.Background(), "mika")
+	if err != nil || curatorStatus.LastRun == nil || curatorStatus.LastRun.Trigger != "dashboard" {
+		t.Fatalf("curator last run = %#v error=%v", curatorStatus.LastRun, err)
+	}
+
 	filteredRequest := httptest.NewRequest(
 		http.MethodGet,
 		"/?view=advanced&q=canonical+output&lifecycle=candidate&kind=decision&scope=project&scope_key=novelclaw&created_by=sola",
@@ -111,8 +175,9 @@ func TestDashboardLoginAndReview(t *testing.T) {
 			t.Fatalf("filtered dashboard omitted %q: status=%d body=%s", expected, filtered.Code, filteredBody)
 		}
 	}
-	if strings.Contains(filteredBody, other.Title) {
-		t.Fatalf("filtered dashboard included unrelated memory: %s", filteredBody)
+	memoryListStart := strings.Index(filteredBody, `<section class="memory-list"`)
+	if memoryListStart < 0 || strings.Contains(filteredBody[memoryListStart:], other.Title) {
+		t.Fatalf("filtered memory list included unrelated memory: %s", filteredBody)
 	}
 
 	invalidFilter := httptest.NewRequest(http.MethodGet, "/?lifecycle=unknown", nil)
@@ -181,4 +246,114 @@ func TestDashboardLoginAndReview(t *testing.T) {
 		!strings.Contains(detail.Body.String(), "รับไปใช้งาน") {
 		t.Fatalf("detail status=%d body=%s", detail.Code, detail.Body.String())
 	}
+}
+
+func TestDashboardConfiguresAndRunsOptionalAdvisor(t *testing.T) {
+	t.Parallel()
+	hub, err := cortex.Open(cortex.Config{
+		DatabasePath: filepath.Join(t.TempDir(), "cortex.db"),
+		AdminAgents:  []string{"mika"},
+	})
+	if err != nil {
+		t.Fatalf("open Cortex: %v", err)
+	}
+	t.Cleanup(func() { _ = hub.Close() })
+
+	var memory cortex.Memory
+	for agent, requestID := range map[string]string{"sola": "advisor/sola", "nua": "advisor/nua"} {
+		memory, err = hub.Remember(context.Background(), cortex.RememberCommand{
+			IdempotencyKey: requestID, Kind: cortex.KindSolution, Scope: cortex.ScopeProject,
+			ScopeKey: "novelclaw", MemoryKey: "novelclaw.safe-output",
+			Title: "Validate output before replace", Content: "Run the quality gate before replacing output.",
+			AgentID: agent, SourceRef: "quality_gate.go",
+		})
+		if err != nil {
+			t.Fatalf("create advisor candidate as %s: %v", agent, err)
+		}
+	}
+
+	advisor := &fakeDashboardAdvisor{}
+	handler := NewWithControlLauncherAndAdvisor(
+		hub, StaticAuthenticator{"mika-token": "mika"}, nil, nil, advisor,
+	)
+	cookie := loginDashboardForTest(t, handler, "mika-token")
+	dashboard := requestDashboardForTest(t, handler, cookie)
+	csrfToken := dashboardCSRFForTest(t, dashboard)
+
+	settingsForm := url.Values{
+		"csrf": {csrfToken}, "enabled": {"yes"},
+		"endpoint": {"http://127.0.0.1:20128/v1"}, "model": {"reviewer"},
+		"input_token_budget": {"1200"}, "output_token_budget": {"350"}, "effort": {"auto"},
+	}
+	settingsRequest := httptest.NewRequest(
+		http.MethodPost, "/ui/advisor/settings", strings.NewReader(settingsForm.Encode()),
+	)
+	settingsRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	settingsRequest.AddCookie(cookie)
+	settingsResponse := httptest.NewRecorder()
+	handler.ServeHTTP(settingsResponse, settingsRequest)
+	if settingsResponse.Code != http.StatusSeeOther || advisor.modelCalls != 1 {
+		t.Fatalf("advisor settings status=%d model_calls=%d body=%s",
+			settingsResponse.Code, advisor.modelCalls, settingsResponse.Body.String())
+	}
+
+	runForm := url.Values{"csrf": {csrfToken}}
+	runRequest := httptest.NewRequest(http.MethodPost, "/ui/advisor/run", strings.NewReader(runForm.Encode()))
+	runRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	runRequest.AddCookie(cookie)
+	runResponse := httptest.NewRecorder()
+	handler.ServeHTTP(runResponse, runRequest)
+	if runResponse.Code != http.StatusOK ||
+		!strings.Contains(runResponse.Body.String(), "ควรเปิดดูหลักฐานก่อนรับเป็นความรู้ร่วม") ||
+		!strings.Contains(runResponse.Body.String(), memory.Title) {
+		t.Fatalf("advisor run status=%d body=%s", runResponse.Code, runResponse.Body.String())
+	}
+	if advisor.lastInput.Model != "reviewer" || advisor.lastInput.InputTokenBudget != 1200 ||
+		len(advisor.lastInput.Suggestions) != 1 {
+		t.Fatalf("advisor input = %#v", advisor.lastInput)
+	}
+
+	status, err := hub.AdvisorStatus(context.Background(), "mika")
+	if err != nil || status.LastRun == nil || status.LastRun.InputTokens != 410 {
+		t.Fatalf("advisor status=%#v error=%v", status, err)
+	}
+	updatedDashboard := requestDashboardForTest(t, handler, cookie)
+	if !strings.Contains(updatedDashboard, "สรุปล่าสุด:") ||
+		!strings.Contains(updatedDashboard, "ควรเปิดดูหลักฐานก่อนรับเป็นความรู้ร่วม") {
+		t.Fatalf("dashboard omitted the latest advisor summary: %s", updatedDashboard)
+	}
+}
+
+func loginDashboardForTest(t *testing.T, handler http.Handler, token string) *http.Cookie {
+	t.Helper()
+	form := url.Values{"token": {token}}
+	request := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusSeeOther || len(response.Result().Cookies()) != 1 {
+		t.Fatalf("dashboard login status=%d body=%s", response.Code, response.Body.String())
+	}
+	return response.Result().Cookies()[0]
+}
+
+func requestDashboardForTest(t *testing.T, handler http.Handler, cookie *http.Cookie) string {
+	t.Helper()
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("dashboard status=%d body=%s", response.Code, response.Body.String())
+	}
+	return response.Body.String()
+}
+
+func dashboardCSRFForTest(t *testing.T, body string) string {
+	t.Helper()
+	match := regexp.MustCompile(`name="csrf" value="([^"]+)"`).FindStringSubmatch(body)
+	if len(match) != 2 {
+		t.Fatalf("dashboard omitted CSRF token: %s", body)
+	}
+	return match[1]
 }

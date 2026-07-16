@@ -29,6 +29,7 @@ internal/controlcenter/          serialized local runtime and connector controls
 internal/cortex/                 memory domain and deep-module interface
 internal/hermes/                 connector discovery, install, activation
 internal/httpapi/                HTTP translation and management dashboard
+internal/intelligence/           optional loopback model-advisor adapter
 internal/importer/holographic/   read-only legacy adapter
 internal/launcher/               validated Windows dashboard opener
 internal/localauth/              HMAC launcher proof and one-time UI codes
@@ -85,6 +86,27 @@ surface area:
 - Procedures that repeatedly succeed can produce reviewable skill proposals.
 - Other frameworks install separate connectors against HTTP v1.
 
-The initial implementation intentionally omits automatic raw-turn mirroring,
-automatic skill mutation, vector databases, and distributed coordination. Add
-them only when measured usage shows the simpler path is insufficient.
+## Curator governance
+
+Curator is a deep module inside `internal/cortex`: callers ask for a preview,
+update a small policy record, or run one guarded curation pass. Evidence
+counting, protected memory classes, risk detection, lifecycle actions, and run
+auditing stay behind that interface. The dashboard translates the result into
+human language and does not reproduce policy logic.
+
+Automatic mode is intentionally narrow. It can approve a sourced project or
+domain candidate after distinct-agent agreement, but it cannot create a
+canonical rule or mutate global, private, preference, project-state, or
+imported memory. Active and canonical records whose truth or utility decays are
+flagged for a governor instead of silently remaining golden forever.
+
+The optional model seam begins after deterministic analysis. A model can
+summarize or challenge a suggestion, but cannot weaken the code-level rules or
+become required for core operation. The adapter accepts only loopback HTTP
+endpoints, caps external responses, enforces input/output budgets, and validates
+model output against the IDs it sent. See [Curator](curator.md) and
+[Model advisor](model-advisor.md).
+
+The implementation intentionally omits automatic raw-turn mirroring, automatic
+skill mutation, vector databases, and distributed coordination. Add them only
+when measured usage shows the simpler path is insufficient.

@@ -17,6 +17,7 @@ import (
 	"cortex.local/cortex/internal/controlcenter"
 	"cortex.local/cortex/internal/cortex"
 	"cortex.local/cortex/internal/httpapi"
+	"cortex.local/cortex/internal/intelligence"
 	"cortex.local/cortex/internal/localauth"
 )
 
@@ -102,8 +103,11 @@ func serveCortexCycle(
 		_ = hub.Close()
 		return controlcenter.ActionStop, fmt.Errorf("initialize dashboard launcher: %w", err)
 	}
+	advisor := intelligence.NewClient()
 	server := &http.Server{
-		Addr: address, Handler: httpapi.NewWithControlAndLauncher(hub, authenticator, runtime, dashboardLauncher),
+		Addr: address, Handler: httpapi.NewWithControlLauncherAndAdvisor(
+			hub, authenticator, runtime, dashboardLauncher, advisor,
+		),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second,
 		WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 1 << 20,
 	}

@@ -1,4 +1,4 @@
-# Cortex v0.1 Specification
+# Cortex v0.3 Specification
 
 ## Product boundary
 
@@ -36,6 +36,15 @@ Every create, review, recall, and feedback action produces an append-only event.
 Existing memory content is revised by adding a revision, never by overwriting
 its prior representation.
 
+Repeated observations of an unchanged current revision are committed as
+evidence. The local Curator can use distinct-agent agreement and source
+references to prepare a review queue. Automatic approval is limited to sourced
+project/domain candidates; it never creates canonical rules or changes global,
+private, preference, project-state, or imported memory.
+
+Canonical memory remains revisable. Contradictions and low utility continue to
+change its scores and cause Curator to request human review.
+
 ## Public deep-module interface
 
 The application core exposes five operations:
@@ -48,4 +57,3 @@ The application core exposes five operations:
 
 The HTTP API and connectors translate to this interface rather than reaching
 into storage directly.
-

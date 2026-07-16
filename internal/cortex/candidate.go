@@ -155,6 +155,9 @@ func reviseOrObserveCandidate(
 	if unchanged {
 		metadata := copyMetadata(input.metadata)
 		metadata["revision"] = existing.Revision
+		if sourceRef := strings.TrimSpace(input.sourceRef); sourceRef != "" {
+			metadata["source_ref"] = sourceRef
+		}
 		if err := appendCandidateEvent(ctx, tx, existing.ID, EventObserved, input, metadata, now); err != nil {
 			return Memory{}, false, err
 		}

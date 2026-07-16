@@ -15,7 +15,7 @@ func (hub *Hub) Remember(ctx context.Context, cmd RememberCommand) (Memory, erro
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	memory, created, err := insertCandidate(ctx, tx, candidateInput{
+	memory, _, err := insertCandidate(ctx, tx, candidateInput{
 		idempotencyKey: scopedRequestKey(cmd.AgentID, cmd.IdempotencyKey),
 		operation:      "remember",
 		kind:           cmd.Kind,
@@ -35,11 +35,9 @@ func (hub *Hub) Remember(ctx context.Context, cmd RememberCommand) (Memory, erro
 	if err != nil {
 		return Memory{}, err
 	}
-	if !created {
-		return memory, nil
-	}
 	if err := tx.Commit(); err != nil {
 		return Memory{}, fmt.Errorf("commit remember: %w", err)
 	}
+	hub.maybeCurate(ctx)
 	return memory, nil
 }

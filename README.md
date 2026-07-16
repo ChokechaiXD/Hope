@@ -4,7 +4,7 @@ Cortex is a standalone, local-first shared memory hub for AI agents. It keeps
 memory records, scores, usage events, reviews, and connector credentials under
 the user's control. Agent frameworks are adapters; they never own the database.
 
-## What v0.2 provides
+## What v0.3 provides
 
 - One Go executable and one SQLite database
 - WAL mode, FTS5 search, versioned schema migrations
@@ -26,9 +26,14 @@ the user's control. Agent frameworks are adapters; they never own the database.
   dashboard with a short-lived, one-time local code
 - Embedded Hermes connector installer
 - Read-only Holographic importer; imported facts stay candidates
+- Deterministic Curator with manual, assisted, and guarded automatic modes
+- Durable repeated-observation evidence tied to the current memory revision
+- Optional, manual second-opinion summaries through a loopback 9Router or other
+  OpenAI-compatible endpoint, with live model discovery and token budgets
 
 No cloud account, LLM, embedding model, Redis, PostgreSQL, Docker, or Node.js
-runtime is required.
+runtime is required. The optional model advisor is disabled by default and is
+never required for capture, recall, scoring, review, or automatic curation.
 
 ## Build
 
@@ -64,6 +69,19 @@ Daily work is dashboard-only: search and review memories, restart or stop Cortex
 and press **Discover & connect agents** whenever a new Hermes profile appears.
 The connector action creates a timestamped rollback snapshot before changing any
 profile. No terminal is needed for these operations.
+
+The dashboard also exposes **Cortex Curator**. Its free deterministic gate can
+organize review work after a configurable number of durable memory events. In
+automatic mode it can approve only sourced project/domain candidates confirmed
+by distinct agents. Global/private data, preferences, project state, imported
+records, and canonical rules always remain human decisions.
+
+If a second opinion is useful, enable the model advisor in the same dashboard,
+load the current model list from `http://127.0.0.1:20128/v1`, choose a model, and
+set input/output budgets. Cortex contacts only the loopback endpoint and stores
+no model catalog or API key. The router may still use whichever local or remote
+provider the user configured behind it. Model output is recorded as advice and
+cannot approve, edit, or supersede memory.
 
 Issue a fresh dashboard token without opening any connector config:
 
@@ -117,6 +135,7 @@ python -m unittest discover -s connectors\hermes\tests -p "test_*.py"
 go vet ./...
 ```
 
-See [Architecture](docs/architecture.md) and [core specification](docs/spec.md)
-for module boundaries and invariants. See [Operations](docs/operations.md) for
-live status, agent onboarding, upgrades, and rollback.
+See [Architecture](docs/architecture.md), [core specification](docs/spec.md),
+[Curator](docs/curator.md), and [Model advisor](docs/model-advisor.md) for module
+boundaries and invariants. See [Operations](docs/operations.md) for live status,
+agent onboarding, upgrades, and rollback.
