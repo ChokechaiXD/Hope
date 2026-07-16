@@ -40,17 +40,19 @@ type dashboardView struct {
 	AgentSettings       []dashboardAgentSettings
 	AgentSettingsErr    string
 	AgentSettingsNotice string
+	CandidateGroups     []dashboardCandidateGroup
 	CanBulkReview       bool
 	BatchNotice         string
 }
 
 type dashboardFilters struct {
-	Text      string
-	Lifecycle string
-	Kind      string
-	Scope     string
-	ScopeKey  string
-	CreatedBy string
+	Text           string
+	Lifecycle      string
+	Kind           string
+	Scope          string
+	ScopeKey       string
+	CreatedBy      string
+	CandidateGroup string
 }
 
 type dashboardSystem struct {
@@ -74,12 +76,13 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 	filters := dashboardFilters{
-		Text:      strings.TrimSpace(request.URL.Query().Get("q")),
-		Lifecycle: strings.TrimSpace(request.URL.Query().Get("lifecycle")),
-		Kind:      strings.TrimSpace(request.URL.Query().Get("kind")),
-		Scope:     strings.TrimSpace(request.URL.Query().Get("scope")),
-		ScopeKey:  strings.TrimSpace(request.URL.Query().Get("scope_key")),
-		CreatedBy: strings.TrimSpace(request.URL.Query().Get("created_by")),
+		Text:           strings.TrimSpace(request.URL.Query().Get("q")),
+		Lifecycle:      strings.TrimSpace(request.URL.Query().Get("lifecycle")),
+		Kind:           strings.TrimSpace(request.URL.Query().Get("kind")),
+		Scope:          strings.TrimSpace(request.URL.Query().Get("scope")),
+		ScopeKey:       strings.TrimSpace(request.URL.Query().Get("scope_key")),
+		CreatedBy:      strings.TrimSpace(request.URL.Query().Get("created_by")),
+		CandidateGroup: strings.TrimSpace(request.URL.Query().Get("candidate_group")),
 	}
 	counts, err := server.hub.Counts(request.Context(), session.AgentID)
 	if err != nil {
@@ -95,6 +98,28 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 		writeDomainError(writer, err)
 		return
 	}
+	candidateGroups := []dashboardCandidateGroup(nil)
+	if counts[cortex.LifecycleCandidate] > 0 {
+		candidates, candidateErr := server.hub.Browse(request.Context(), cortex.BrowseQuery{
+			AgentID: session.AgentID, Lifecycle: cortex.LifecycleCandidate, Limit: 200,
+		})
+		if candidateErr != nil {
+			writeDomainError(writer, candidateErr)
+			return
+		}
+		candidateGroups = candidateInboxGroups(candidates.Memories)
+		if filters.CandidateGroup != "" {
+			for index := range candidateGroups {
+				if candidateGroups[index].Key == filters.CandidateGroup {
+					candidateGroups[index].Active = true
+					browsed.Memories = filterCandidateInbox(candidates.Memories, filters.CandidateGroup)
+					browsed.Total = len(browsed.Memories)
+					filters.Lifecycle = string(cortex.LifecycleCandidate)
+					break
+				}
+			}
+		}
+	}
 	view := dashboardView{
 		AgentID:   session.AgentID,
 		CSRFToken: session.CSRFToken,
@@ -104,7 +129,8 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 		Canonical: counts[cortex.LifecycleCanonical],
 		Memories:  make([]dashboardMemory, 0, len(browsed.Memories)),
 		Filters:   filters, Matched: browsed.Total,
-		CanBulkReview: server.hub.CanGovern(session.AgentID) && counts[cortex.LifecycleCandidate] > 0,
+		CandidateGroups: candidateGroups,
+		CanBulkReview:   server.hub.CanGovern(session.AgentID) && counts[cortex.LifecycleCandidate] > 0,
 	}
 	for _, count := range counts {
 		view.Total += count

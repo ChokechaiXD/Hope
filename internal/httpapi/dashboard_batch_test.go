@@ -39,10 +39,18 @@ func TestDashboardBulkReviewsSelectedCandidates(t *testing.T) {
 	handler := New(hub, StaticAuthenticator{"mika-token": "mika"})
 	cookie := loginDashboardForTest(t, handler, "mika-token")
 	dashboard := requestDashboardPathForTest(t, handler, cookie, "/?lifecycle=candidate")
-	for _, expected := range []string{"จัดการหลายรายการ", "เลือกเฉพาะรายการที่ตรวจแล้ว", `value="` + memories[0].ID + `"`} {
+	for _, expected := range []string{
+		"กล่องตรวจความรู้เก่า", "ควรตรวจแยก", "จัดการหลายรายการ",
+		"เลือกเฉพาะรายการที่ตรวจแล้ว", `value="` + memories[0].ID + `"`,
+	} {
 		if !strings.Contains(dashboard, expected) {
 			t.Fatalf("bulk review UI omitted %q: %s", expected, dashboard)
 		}
+	}
+	groupedDashboard := requestDashboardPathForTest(t, handler, cookie, "/?candidate_group=review")
+	if !strings.Contains(groupedDashboard, "candidate-group-active") ||
+		!strings.Contains(groupedDashboard, memories[2].Title) {
+		t.Fatalf("candidate group filter was not active: %s", groupedDashboard)
 	}
 	csrf := dashboardCSRFForTest(t, dashboard)
 	unsafeForm := url.Values{

@@ -91,6 +91,14 @@ h1 { margin-bottom: 0; letter-spacing: -.04em; }
 .advisor-result-items article { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--panel); }
 .advisor-result-items h3 { margin: .6rem 0 .35rem; }
 .section-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.candidate-inbox { margin: 0 0 2.5rem; padding: 1.15rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--panel); }
+.candidate-inbox h2 { margin-bottom: .25rem; }
+.candidate-groups { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .65rem; margin-top: 1rem; }
+.candidate-group { display: grid; grid-template-columns: auto 1fr; align-content: start; gap: .25rem .55rem; min-width: 0; padding: .8rem; border: 1px solid var(--line); border-radius: .7rem; background: #101613; text-decoration: none; }
+.candidate-group:hover, .candidate-group-active { border-color: var(--amber); }
+.candidate-group-count { grid-row: span 2; color: var(--amber); font-size: 1.4rem; font-weight: 800; }
+.candidate-group > span:not(.candidate-group-count), .candidate-group small { grid-column: 1 / -1; color: var(--muted); font-size: .75rem; }
+.candidate-group small { color: var(--mint); }
 .explorer { display: grid; grid-template-columns: 2fr repeat(3, minmax(8rem, 1fr)); gap: .75rem; margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--panel); }
 .explorer label { display: grid; align-content: start; gap: .3rem; min-width: 0; color: var(--muted); font-size: .78rem; }
 .explorer .search-field { grid-column: span 2; }
@@ -139,6 +147,7 @@ dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
   .explorer .search-field { grid-column: auto; }
   .system-panel, .system-actions { align-items: stretch; display: grid; grid-template-columns: 1fr; }
   .agent-settings-card { grid-template-columns: 1fr; }
+  .candidate-groups { grid-template-columns: 1fr; }
   .bulk-review { grid-template-columns: 1fr; }
   .curator-head, .curator-run-actions { display: grid; grid-template-columns: 1fr; }
   .curator-stats { grid-template-columns: repeat(2, 1fr); }

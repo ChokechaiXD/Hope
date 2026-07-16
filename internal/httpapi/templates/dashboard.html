@@ -262,6 +262,29 @@
     <p class="notice" role="alert">ผู้ช่วยโมเดลยังทำงานไม่ได้: {{.AdvisorErr}}</p>
     {{end}}
 
+    {{if .CandidateGroups}}
+    <section class="candidate-inbox" id="candidate-inbox" aria-labelledby="candidate-inbox-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">จัดกลุ่มให้ก่อน · ไม่อนุมัติเอง</p>
+          <h2 id="candidate-inbox-title">กล่องตรวจความรู้เก่า</h2>
+        </div>
+        <a class="quiet-link" href="/?lifecycle=candidate{{if .Advanced}}&view=advanced{{end}}#candidate-inbox">ดูรายการรอตรวจทั้งหมด</a>
+      </div>
+      <p class="muted">Cortex ใช้กฎเบา ๆ แยกข้อมูลนำเข้าตามจุดประสงค์ พี่จึงเลือกตรวจและจัดการเป็นชุดได้โดยไม่เสีย token</p>
+      <div class="candidate-groups">
+        {{range .CandidateGroups}}
+        <a class="candidate-group {{if .Active}}candidate-group-active{{end}}" href="/?lifecycle=candidate&candidate_group={{.Key}}{{if $.Advanced}}&view=advanced{{end}}#candidate-inbox">
+          <span class="candidate-group-count">{{.Count}}</span>
+          <strong>{{.Label}}</strong>
+          <span>{{.Description}}</span>
+          {{if .Imported}}<small>นำเข้าจากระบบเดิม</small>{{end}}
+        </a>
+        {{end}}
+      </div>
+    </section>
+    {{end}}
+
     <section class="section-head explorer-head">
       <div><p class="eyebrow">สมองที่สองที่ตรวจสอบย้อนหลังได้</p><h2>คลังความรู้</h2></div>
       <p class="muted">พบ {{.Matched}} รายการ · ความน่าเชื่อถือและประโยชน์ถูกติดตามแยกกัน</p>
