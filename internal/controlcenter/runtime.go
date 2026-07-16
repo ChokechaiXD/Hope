@@ -23,8 +23,9 @@ const (
 )
 
 var (
-	ErrInvalidAction = errors.New("invalid runtime action")
-	ErrActionPending = errors.New("runtime action already pending")
+	ErrInvalidAction        = errors.New("invalid runtime action")
+	ErrActionPending        = errors.New("runtime action already pending")
+	ErrInvalidAgentSettings = hermes.ErrInvalidProfileSettings
 )
 
 type Status struct {
@@ -43,6 +44,9 @@ type SyncResult struct {
 	Agents    []string
 	BackupDir string
 }
+
+type AgentSettings = hermes.ProfileSettings
+type AgentSettingsResult = hermes.UpdateProfileSettingsResult
 
 type syncHermes func(context.Context) (SyncResult, error)
 
@@ -113,22 +117,47 @@ func (runtime *Runtime) Request(action Action) error {
 }
 
 func (runtime *Runtime) SyncHermes(ctx context.Context) (SyncResult, error) {
-	runtime.mu.Lock()
-	if runtime.pending != "" || runtime.syncing {
-		runtime.mu.Unlock()
+	if err := runtime.beginHermesWrite(); err != nil {
 		return SyncResult{}, ErrActionPending
 	}
-	runtime.syncing = true
-	runtime.mu.Unlock()
-	defer func() {
-		runtime.mu.Lock()
-		runtime.syncing = false
-		runtime.mu.Unlock()
-	}()
+	defer runtime.endHermesWrite()
 	if runtime.sync == nil {
 		return SyncResult{}, fmt.Errorf("Hermes sync is unavailable")
 	}
 	return runtime.sync(ctx)
+}
+
+func (runtime *Runtime) AgentSettings(context.Context) ([]AgentSettings, error) {
+	return hermes.ListProfileSettings(defaultHermesHome(), "mika")
+}
+
+func (runtime *Runtime) UpdateAgentSettings(
+	_ context.Context,
+	settings AgentSettings,
+) (AgentSettingsResult, error) {
+	if err := runtime.beginHermesWrite(); err != nil {
+		return AgentSettingsResult{}, err
+	}
+	defer runtime.endHermesWrite()
+	return hermes.UpdateProfileSettings(hermes.UpdateProfileSettingsOptions{
+		HermesHome: defaultHermesHome(), DataDir: runtime.dataDir, RootAgent: "mika", Settings: settings,
+	})
+}
+
+func (runtime *Runtime) beginHermesWrite() error {
+	runtime.mu.Lock()
+	defer runtime.mu.Unlock()
+	if runtime.pending != "" || runtime.syncing {
+		return ErrActionPending
+	}
+	runtime.syncing = true
+	return nil
+}
+
+func (runtime *Runtime) endHermesWrite() {
+	runtime.mu.Lock()
+	runtime.syncing = false
+	runtime.mu.Unlock()
 }
 
 func (runtime *Runtime) Next(ctx context.Context) (Action, error) {

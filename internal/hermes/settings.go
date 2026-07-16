@@ -2,6 +2,7 @@ package hermes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,6 +19,8 @@ const (
 )
 
 var scopeKeyPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+
+var ErrInvalidProfileSettings = errors.New("invalid Hermes profile settings")
 
 type ProfileSettings struct {
 	AgentID               string `json:"agent_id"`
@@ -75,14 +78,14 @@ func UpdateProfileSettings(options UpdateProfileSettingsOptions) (UpdateProfileS
 		}
 	}
 	if profileHome == "" {
-		return UpdateProfileSettingsResult{}, fmt.Errorf("unknown Hermes agent %q", settings.AgentID)
+		return UpdateProfileSettingsResult{}, fmt.Errorf("%w: unknown Hermes agent %q", ErrInvalidProfileSettings, settings.AgentID)
 	}
 	value, _, err := readConnectorConfig(profileHome)
 	if err != nil {
 		return UpdateProfileSettingsResult{}, err
 	}
 	if value.AgentID != settings.AgentID || strings.TrimSpace(value.Token) == "" {
-		return UpdateProfileSettingsResult{}, fmt.Errorf("Hermes agent %q is not connected to Cortex", settings.AgentID)
+		return UpdateProfileSettingsResult{}, fmt.Errorf("%w: Hermes agent %q is not connected to Cortex", ErrInvalidProfileSettings, settings.AgentID)
 	}
 	backupFile, err := backupConnectorSettings(options.DataDir, settings.AgentID, profileHome)
 	if err != nil {
@@ -139,18 +142,18 @@ func normalizedSettings(settings ProfileSettings) ProfileSettings {
 
 func validateProfileSettings(settings ProfileSettings) error {
 	if !scopeKeyPattern.MatchString(settings.AgentID) {
-		return fmt.Errorf("invalid Hermes agent id")
+		return fmt.Errorf("%w: invalid Hermes agent id", ErrInvalidProfileSettings)
 	}
 	for label, value := range map[string]string{"project": settings.DefaultProject, "domain": settings.DefaultDomain} {
 		if value != "" && !scopeKeyPattern.MatchString(value) {
-			return fmt.Errorf("invalid %s key", label)
+			return fmt.Errorf("%w: invalid %s key", ErrInvalidProfileSettings, label)
 		}
 	}
 	if settings.AutoCaptureEveryTurns < 1 || settings.AutoCaptureEveryTurns > 50 ||
 		settings.AutoCaptureMaxChars < 100 || settings.AutoCaptureMaxChars > 4000 ||
 		settings.PrefetchTokenBudget < 100 || settings.PrefetchTokenBudget > 4000 ||
 		settings.RecallTokenBudget < 100 || settings.RecallTokenBudget > 4000 {
-		return fmt.Errorf("connector settings are outside supported limits")
+		return fmt.Errorf("%w: connector settings are outside supported limits", ErrInvalidProfileSettings)
 	}
 	return nil
 }

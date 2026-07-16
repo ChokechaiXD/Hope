@@ -175,6 +175,16 @@ class CortexProviderAutoCaptureTest(unittest.TestCase):
         self.assertIn("บทเรียนที่ควรจำ:", prompt)
         self.assertIn("Do not add it on routine turns", prompt)
 
+    def test_auto_capture_uses_configured_domain_without_project(self):
+        provider, client = self._provider(
+            default_project="", default_domain="coding", auto_capture_every_turns=1
+        )
+
+        provider.sync_turn("question", "Lesson to remember: Prefer deterministic tests.")
+
+        self.assertEqual(client.requests[0][0]["scope"], "domain")
+        self.assertEqual(client.requests[0][0]["scope_key"], "coding")
+
 
 if __name__ == "__main__":
     unittest.main()

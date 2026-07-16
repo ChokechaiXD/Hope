@@ -19,24 +19,27 @@ var dashboardAssets embed.FS
 var dashboardTemplates = template.Must(template.ParseFS(dashboardAssets, "templates/*.html"))
 
 type dashboardView struct {
-	AgentID       string
-	CSRFToken     string
-	Advanced      bool
-	Total         int
-	Candidate     int
-	Active        int
-	Canonical     int
-	Memories      []dashboardMemory
-	Filters       dashboardFilters
-	Matched       int
-	System        *dashboardSystem
-	SystemErr     string
-	Curator       *dashboardCurator
-	CuratorErr    string
-	CuratorNotice string
-	Advisor       *dashboardAdvisor
-	AdvisorErr    string
-	AdvisorNotice string
+	AgentID             string
+	CSRFToken           string
+	Advanced            bool
+	Total               int
+	Candidate           int
+	Active              int
+	Canonical           int
+	Memories            []dashboardMemory
+	Filters             dashboardFilters
+	Matched             int
+	System              *dashboardSystem
+	SystemErr           string
+	Curator             *dashboardCurator
+	CuratorErr          string
+	CuratorNotice       string
+	Advisor             *dashboardAdvisor
+	AdvisorErr          string
+	AdvisorNotice       string
+	AgentSettings       []dashboardAgentSettings
+	AgentSettingsErr    string
+	AgentSettingsNotice string
 }
 
 type dashboardFilters struct {
@@ -115,6 +118,9 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 	if request.URL.Query().Get("advisor") == "settings" {
 		view.AdvisorNotice = "บันทึกการตั้งค่าผู้ช่วยโมเดลแล้ว"
 	}
+	if request.URL.Query().Get("agents") == "saved" {
+		view.AgentSettingsNotice = "บันทึกการเรียนรู้ของเอเจนต์แล้ว เริ่มใช้ใน session ถัดไป"
+	}
 	curatorStatus, curatorErr := server.hub.CuratorStatus(request.Context(), session.AgentID)
 	if curatorErr == nil {
 		curatorReport, previewErr := server.hub.PreviewCuration(request.Context(), session.AgentID)
@@ -153,6 +159,14 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 				Version: status.Version, Listen: status.Listen, PID: status.PID,
 				DataDir: status.DataDir, Uptime: status.Uptime.Round(time.Second).String(),
 				Pending: status.Pending, Syncing: status.Syncing,
+			}
+		}
+		if settingsControl, ok := server.control.(agentSettingsControl); ok {
+			settings, settingsErr := settingsControl.AgentSettings(request.Context())
+			if settingsErr != nil {
+				view.AgentSettingsErr = settingsErr.Error()
+			} else {
+				view.AgentSettings = presentAgentSettings(settings)
 			}
 		}
 	}

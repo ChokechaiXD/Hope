@@ -46,6 +46,68 @@
     <p class="notice" role="alert">ตรวจสถานะระบบไม่ได้: {{.SystemErr}}</p>
     {{end}}
 
+    {{if .AgentSettingsNotice}}<p class="notice" role="status">{{.AgentSettingsNotice}}</p>{{end}}
+    {{if .AgentSettings}}
+    <section class="agent-settings-panel" id="agent-settings" aria-labelledby="agent-settings-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">ตั้งค่าผ่านหน้าเว็บ · ไม่ต้องแก้ไฟล์</p>
+          <h2 id="agent-settings-title">การเรียนรู้ของแต่ละเอเจนต์</h2>
+        </div>
+        <p class="muted">Project มาก่อน domain · ถ้าเว้นว่างจะเก็บบทเรียนเฉพาะตัว</p>
+      </div>
+      <div class="agent-settings-list">
+        {{range .AgentSettings}}
+        <form method="post" action="/ui/hermes/settings" class="agent-settings-card">
+          <input type="hidden" name="csrf" value="{{$.CSRFToken}}">
+          <input type="hidden" name="agent_id" value="{{.AgentID}}">
+          <div class="agent-settings-name"><strong>{{.Name}}</strong><span>ใช้ค่าใหม่เมื่อเริ่ม session ถัดไป</span></div>
+          <label><span>โปรเจกต์หลัก</span><input name="default_project" value="{{.DefaultProject}}" placeholder="เช่น cortex หรือ novelclaw" pattern="[a-z0-9][a-z0-9_-]{0,63}"></label>
+          <label><span>สายงานหลัก</span><input name="default_domain" value="{{.DefaultDomain}}" placeholder="เช่น coding หรือ research" pattern="[a-z0-9][a-z0-9_-]{0,63}"></label>
+          <label><span>รอบบันทึกบทเรียน</span><select name="auto_capture_every_turns">
+            <option value="1" {{if eq .AutoCaptureEveryTurns 1}}selected{{end}}>ทุกเทิร์น</option>
+            <option value="5" {{if eq .AutoCaptureEveryTurns 5}}selected{{end}}>ทุก 5 เทิร์น</option>
+            <option value="10" {{if eq .AutoCaptureEveryTurns 10}}selected{{end}}>ทุก 10 เทิร์น</option>
+            <option value="20" {{if eq .AutoCaptureEveryTurns 20}}selected{{end}}>ทุก 20 เทิร์น</option>
+            <option value="50" {{if eq .AutoCaptureEveryTurns 50}}selected{{end}}>ทุก 50 เทิร์น</option>
+          </select></label>
+          <label><span>งบ context อัตโนมัติ</span><select name="prefetch_token_budget">
+            <option value="300" {{if eq .PrefetchTokenBudget 300}}selected{{end}}>ประหยัด · 300</option>
+            <option value="500" {{if eq .PrefetchTokenBudget 500}}selected{{end}}>เบา · 500</option>
+            <option value="700" {{if eq .PrefetchTokenBudget 700}}selected{{end}}>สมดุล · 700</option>
+            <option value="1200" {{if eq .PrefetchTokenBudget 1200}}selected{{end}}>ละเอียด · 1,200</option>
+            <option value="2000" {{if eq .PrefetchTokenBudget 2000}}selected{{end}}>สูง · 2,000</option>
+          </select></label>
+          <label class="check-field"><input type="checkbox" name="auto_capture_enabled" value="yes" {{if .AutoCaptureEnabled}}checked{{end}}> ให้ Cortex เก็บเฉพาะบทเรียนที่ทำเครื่องหมาย</label>
+          {{if $.Advanced}}
+          <label><span>ความยาวบทเรียนสูงสุด</span><select name="auto_capture_max_chars">
+            <option value="500" {{if eq .AutoCaptureMaxChars 500}}selected{{end}}>500 ตัวอักษร</option>
+            <option value="1000" {{if eq .AutoCaptureMaxChars 1000}}selected{{end}}>1,000 ตัวอักษร</option>
+            <option value="2000" {{if eq .AutoCaptureMaxChars 2000}}selected{{end}}>2,000 ตัวอักษร</option>
+            <option value="4000" {{if eq .AutoCaptureMaxChars 4000}}selected{{end}}>4,000 ตัวอักษร</option>
+          </select></label>
+          <label><span>งบค้นหาเมื่อ agent เรียกเอง</span><select name="recall_token_budget">
+            <option value="500" {{if eq .RecallTokenBudget 500}}selected{{end}}>500</option>
+            <option value="700" {{if eq .RecallTokenBudget 700}}selected{{end}}>700</option>
+            <option value="900" {{if eq .RecallTokenBudget 900}}selected{{end}}>900</option>
+            <option value="1200" {{if eq .RecallTokenBudget 1200}}selected{{end}}>1,200</option>
+            <option value="2000" {{if eq .RecallTokenBudget 2000}}selected{{end}}>2,000</option>
+            <option value="4000" {{if eq .RecallTokenBudget 4000}}selected{{end}}>4,000</option>
+          </select></label>
+          {{else}}
+          <input type="hidden" name="auto_capture_max_chars" value="{{.AutoCaptureMaxChars}}">
+          <input type="hidden" name="recall_token_budget" value="{{.RecallTokenBudget}}">
+          {{end}}
+          <button type="submit">บันทึก {{.Name}}</button>
+        </form>
+        {{end}}
+      </div>
+      <p class="muted">Cortex ไม่แสดง token ในหน้านี้ และสร้าง backup ก่อนเปลี่ยนค่าทุกครั้ง</p>
+    </section>
+    {{else if .AgentSettingsErr}}
+    <p class="notice" role="alert">อ่านการตั้งค่าเอเจนต์ไม่ได้: {{.AgentSettingsErr}}</p>
+    {{end}}
+
     <section class="stats" aria-label="ภาพรวมคลังความรู้">
       <article><strong>{{.Total}}</strong><span>ความรู้ทั้งหมด</span></article>
       <article><strong>{{.Candidate}}</strong><span>รอตรวจ</span></article>

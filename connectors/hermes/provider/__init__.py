@@ -163,6 +163,11 @@ class CortexMemoryProvider(MemoryProvider):
                 "default": "",
             },
             {
+                "key": "default_domain",
+                "description": "Optional domain used when no project is configured",
+                "default": "",
+            },
+            {
                 "key": "auto_capture_enabled",
                 "description": "Capture only explicitly marked durable lessons",
                 "default": True,
@@ -248,6 +253,7 @@ class CortexMemoryProvider(MemoryProvider):
                 agent_id=self._agent_id,
                 session_id=self._session_id,
                 default_project=str(self._config.get("default_project") or ""),
+                default_domain=str(self._config.get("default_domain") or ""),
             )
             try:
                 self._client.remember(payload, idempotency_key)

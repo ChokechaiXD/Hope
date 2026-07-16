@@ -24,6 +24,7 @@ Optional connector settings:
 ```json
 {
   "default_project": "cortex",
+  "default_domain": "coding",
   "auto_capture_enabled": true,
   "auto_capture_every_turns": 5,
   "auto_capture_max_chars": 1000

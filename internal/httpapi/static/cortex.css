@@ -41,6 +41,16 @@ h1 { margin-bottom: 0; letter-spacing: -.04em; }
 .stats article { border: 1px solid var(--line); border-radius: .8rem; padding: 1rem; background: var(--panel); }
 .stats strong { display: block; font-size: 1.8rem; }
 .stats span { color: var(--muted); }
+.agent-settings-panel { margin: 1.5rem 0 2rem; padding: 1.15rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--panel); }
+.agent-settings-panel h2 { margin-bottom: .25rem; }
+.agent-settings-list { display: grid; gap: .7rem; margin: 1rem 0; }
+.agent-settings-card { display: grid; grid-template-columns: minmax(8rem, .7fr) repeat(4, minmax(8rem, 1fr)); align-items: end; gap: .65rem; padding: .85rem; border: 1px solid var(--line); border-radius: .7rem; background: #101613; }
+.agent-settings-card label { display: grid; gap: .3rem; min-width: 0; color: var(--muted); font-size: .78rem; }
+.agent-settings-card .agent-settings-name { align-self: center; }
+.agent-settings-name strong, .agent-settings-name span { display: block; }
+.agent-settings-name span { color: var(--muted); font-size: .72rem; }
+.agent-settings-card .check-field { display: flex; align-items: center; align-self: center; gap: .4rem; color: var(--text); }
+.agent-settings-card .check-field input { width: auto; }
 .curator-panel { margin: 0 0 2.5rem; padding: 1.15rem; border: 1px solid var(--line); border-radius: .9rem; background: linear-gradient(145deg, #16201b, var(--panel)); }
 .curator-head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .curator-head h2 { margin-bottom: .35rem; }
@@ -122,6 +132,7 @@ dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
   .section-head, .review-form, .explorer { display: grid; grid-template-columns: 1fr; }
   .explorer .search-field { grid-column: auto; }
   .system-panel, .system-actions { align-items: stretch; display: grid; grid-template-columns: 1fr; }
+  .agent-settings-card { grid-template-columns: 1fr; }
   .curator-head, .curator-run-actions { display: grid; grid-template-columns: 1fr; }
   .curator-stats { grid-template-columns: repeat(2, 1fr); }
   .curator-suggestions, .curator-settings-form { grid-template-columns: 1fr; }

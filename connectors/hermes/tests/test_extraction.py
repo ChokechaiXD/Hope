@@ -110,6 +110,19 @@ This unrelated explanation must not be stored.
         self.assertEqual(payload["scope_key"], "cortex")
         self.assertEqual(payload["source_ref"], "session:session-9")
 
+    def test_memory_request_uses_domain_when_project_is_not_configured(self):
+        proposal = extract_lessons("Lesson to remember: Prefer deterministic tests.")[0]
+
+        payload, _ = build_memory_request(
+            proposal,
+            agent_id="sora",
+            session_id="session-10",
+            default_domain="coding",
+        )
+
+        self.assertEqual(payload["scope"], "domain")
+        self.assertEqual(payload["scope_key"], "coding")
+
 
 if __name__ == "__main__":
     unittest.main()

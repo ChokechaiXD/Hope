@@ -18,6 +18,8 @@ type fakeControlCenter struct {
 	status    controlcenter.Status
 	requested []controlcenter.Action
 	synced    int
+	settings  []controlcenter.AgentSettings
+	updated   *controlcenter.AgentSettings
 }
 
 func (fake *fakeControlCenter) SyncHermes(context.Context) (controlcenter.SyncResult, error) {
@@ -34,6 +36,18 @@ func (fake *fakeControlCenter) Status(context.Context) (controlcenter.Status, er
 func (fake *fakeControlCenter) Request(action controlcenter.Action) error {
 	fake.requested = append(fake.requested, action)
 	return nil
+}
+
+func (fake *fakeControlCenter) AgentSettings(context.Context) ([]controlcenter.AgentSettings, error) {
+	return fake.settings, nil
+}
+
+func (fake *fakeControlCenter) UpdateAgentSettings(
+	_ context.Context,
+	settings controlcenter.AgentSettings,
+) (controlcenter.AgentSettingsResult, error) {
+	fake.updated = &settings
+	return controlcenter.AgentSettingsResult{Settings: settings, BackupFile: `C:\Cortex\backups\sora.json`}, nil
 }
 
 func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
@@ -127,5 +141,56 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	if confirmed.Code != http.StatusAccepted || !strings.Contains(confirmed.Body.String(), "กำลังปิด Cortex") ||
 		len(control.requested) != 2 || control.requested[1] != controlcenter.ActionStop {
 		t.Fatalf("confirmed stop status=%d body=%s actions=%#v", confirmed.Code, confirmed.Body.String(), control.requested)
+	}
+}
+
+func TestDashboardEditsHermesAgentSettingsWithoutExposingTokens(t *testing.T) {
+	t.Parallel()
+
+	hub, err := cortex.Open(cortex.Config{
+		DatabasePath: filepath.Join(t.TempDir(), "cortex.db"), AdminAgents: []string{"mika"},
+	})
+	if err != nil {
+		t.Fatalf("open Cortex: %v", err)
+	}
+	t.Cleanup(func() { _ = hub.Close() })
+	control := &fakeControlCenter{
+		status: controlcenter.Status{Running: true, Version: "0.3.2", Listen: "127.0.0.1:7777"},
+		settings: []controlcenter.AgentSettings{{
+			AgentID: "sora", DefaultProject: "cortex", DefaultDomain: "coding",
+			AutoCaptureEnabled: true, AutoCaptureEveryTurns: 5, AutoCaptureMaxChars: 1000,
+			PrefetchTokenBudget: 700, RecallTokenBudget: 1200,
+		}},
+	}
+	handler := NewWithControl(hub, StaticAuthenticator{"mika-token": "mika"}, control)
+	cookie := loginDashboardForTest(t, handler, "mika-token")
+	dashboard := requestDashboardForTest(t, handler, cookie)
+	for _, expected := range []string{"การเรียนรู้ของแต่ละเอเจนต์", "SORA", "cortex", "coding", "ทุก 5 เทิร์น"} {
+		if !strings.Contains(dashboard, expected) {
+			t.Fatalf("agent settings omitted %q: %s", expected, dashboard)
+		}
+	}
+	if strings.Contains(dashboard, "mika-token") || strings.Contains(dashboard, "Bearer") {
+		t.Fatalf("agent settings exposed a credential: %s", dashboard)
+	}
+
+	csrf := dashboardCSRFForTest(t, dashboard)
+	form := url.Values{
+		"csrf": {csrf}, "agent_id": {"sora"}, "default_project": {"novelclaw"},
+		"default_domain": {"coding"}, "auto_capture_enabled": {"yes"},
+		"auto_capture_every_turns": {"10"}, "auto_capture_max_chars": {"2000"},
+		"prefetch_token_budget": {"500"}, "recall_token_budget": {"900"},
+	}
+	request := httptest.NewRequest(http.MethodPost, "/ui/hermes/settings", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusSeeOther || control.updated == nil {
+		t.Fatalf("settings update status=%d updated=%#v body=%s", response.Code, control.updated, response.Body.String())
+	}
+	if control.updated.DefaultProject != "novelclaw" || control.updated.AutoCaptureEveryTurns != 10 ||
+		control.updated.PrefetchTokenBudget != 500 {
+		t.Fatalf("updated settings = %#v", control.updated)
 	}
 }

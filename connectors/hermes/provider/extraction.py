@@ -133,12 +133,14 @@ def build_memory_request(
     agent_id: str,
     session_id: str,
     default_project: str = "",
+    default_domain: str = "",
 ) -> tuple[dict[str, object], str]:
     """Build a candidate request and a stable idempotency key."""
     agent = _safe_key_part(agent_id) or "agent"
     project = default_project.strip()
-    scope = "project" if project else "private"
-    scope_key = project or agent_id.strip()
+    domain = default_domain.strip()
+    scope = "project" if project else "domain" if domain else "private"
+    scope_key = project or domain or agent_id.strip()
     signature = f"{scope}|{scope_key}|{proposal.kind}|{_normalize(proposal.content)}"
     digest = hashlib.sha256(signature.encode("utf-8")).hexdigest()[:16]
     memory_key = f"auto.{agent}.{proposal.kind}.{digest}"

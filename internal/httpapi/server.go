@@ -66,6 +66,7 @@ func NewWithControlLauncherAndAdvisor(
 	mux.HandleFunc("GET /ui/session", server.consumeDashboardSession)
 	mux.HandleFunc("POST /ui/system/action", server.systemAction)
 	mux.HandleFunc("POST /ui/hermes/sync", server.hermesSync)
+	mux.HandleFunc("POST /ui/hermes/settings", server.hermesSettings)
 	mux.HandleFunc("POST /ui/curator/settings", server.curatorSettings)
 	mux.HandleFunc("POST /ui/curator/run", server.curatorRun)
 	mux.HandleFunc("POST /ui/advisor/settings", server.advisorSettings)
