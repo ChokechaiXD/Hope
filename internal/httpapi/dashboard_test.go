@@ -50,7 +50,7 @@ func TestDashboardLoginAndReview(t *testing.T) {
 
 	loginPage := httptest.NewRecorder()
 	handler.ServeHTTP(loginPage, httptest.NewRequest(http.MethodGet, "/", nil))
-	if loginPage.Code != http.StatusOK || !strings.Contains(loginPage.Body.String(), "Sign in") {
+	if loginPage.Code != http.StatusOK || !strings.Contains(loginPage.Body.String(), "เข้าสู่ระบบ") {
 		t.Fatalf("login page status=%d body=%s", loginPage.Code, loginPage.Body.String())
 	}
 
@@ -79,6 +79,15 @@ func TestDashboardLoginAndReview(t *testing.T) {
 	if dashboard.Code != http.StatusOK || !strings.Contains(dashboard.Body.String(), memory.Title) {
 		t.Fatalf("dashboard status=%d body=%s", dashboard.Code, dashboard.Body.String())
 	}
+	dashboardBody := dashboard.Body.String()
+	for _, expected := range []string{"คลังความรู้", "รอตรวจ", "ข้อตัดสินใจ", "โปรเจกต์ · novelclaw", "รายละเอียดขั้นสูง"} {
+		if !strings.Contains(dashboardBody, expected) {
+			t.Fatalf("human dashboard omitted %q: %s", expected, dashboardBody)
+		}
+	}
+	if strings.Contains(dashboardBody, "Truth score") || strings.Contains(dashboardBody, "Memory key") {
+		t.Fatalf("simple dashboard exposed advanced fields: %s", dashboardBody)
+	}
 	csrfMatch := regexp.MustCompile(`name="csrf" value="([^"]+)"`).FindStringSubmatch(dashboard.Body.String())
 	if len(csrfMatch) != 2 {
 		t.Fatalf("dashboard did not render a CSRF token: %s", dashboard.Body.String())
@@ -86,7 +95,7 @@ func TestDashboardLoginAndReview(t *testing.T) {
 	csrfToken := csrfMatch[1]
 	filteredRequest := httptest.NewRequest(
 		http.MethodGet,
-		"/?q=canonical+output&lifecycle=candidate&kind=decision&scope=project&scope_key=novelclaw&created_by=sola",
+		"/?view=advanced&q=canonical+output&lifecycle=candidate&kind=decision&scope=project&scope_key=novelclaw&created_by=sola",
 		nil,
 	)
 	filteredRequest.AddCookie(cookies[0])
@@ -94,7 +103,7 @@ func TestDashboardLoginAndReview(t *testing.T) {
 	handler.ServeHTTP(filtered, filteredRequest)
 	filteredBody := filtered.Body.String()
 	for _, expected := range []string{
-		"Memory explorer", "1 matching record", memory.Title,
+		"คลังความรู้", "พบ 1 รายการ", memory.Title, "Truth score", "Memory key",
 		`value="canonical output"`, `value="candidate" selected`, `value="decision" selected`,
 		`value="project" selected`, `value="novelclaw"`, `value="sola"`,
 	} {
@@ -167,8 +176,9 @@ func TestDashboardLoginAndReview(t *testing.T) {
 	detailRequest.AddCookie(cookies[0])
 	detail := httptest.NewRecorder()
 	handler.ServeHTTP(detail, detailRequest)
-	if detail.Code != http.StatusOK || !strings.Contains(detail.Body.String(), "Usage and changes") ||
-		!strings.Contains(detail.Body.String(), "approved") {
+	if detail.Code != http.StatusOK || !strings.Contains(detail.Body.String(), "สรุปก่อนตัดสินใจ") ||
+		!strings.Contains(detail.Body.String(), "การใช้งานและการเปลี่ยนแปลง") ||
+		!strings.Contains(detail.Body.String(), "รับไปใช้งาน") {
 		t.Fatalf("detail status=%d body=%s", detail.Code, detail.Body.String())
 	}
 }

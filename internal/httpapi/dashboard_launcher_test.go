@@ -95,7 +95,7 @@ func TestLocalLauncherCreatesOneTimeAdminDashboardSession(t *testing.T) {
 	dashboardRequest.AddCookie(cookies[0])
 	dashboard := httptest.NewRecorder()
 	handler.ServeHTTP(dashboard, dashboardRequest)
-	if dashboard.Code != http.StatusOK || !strings.Contains(dashboard.Body.String(), "Memory explorer") {
+	if dashboard.Code != http.StatusOK || !strings.Contains(dashboard.Body.String(), "คลังความรู้") {
 		t.Fatalf("launched dashboard status=%d body=%s", dashboard.Code, dashboard.Body.String())
 	}
 }

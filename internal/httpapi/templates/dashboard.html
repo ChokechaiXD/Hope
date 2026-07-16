@@ -1,119 +1,141 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cortex · Memory control</title>
+  <title>Cortex · คลังความรู้</title>
   <link rel="stylesheet" href="/static/cortex.css">
 </head>
 <body>
   <header class="topbar">
     <div>
-      <p class="eyebrow">STANDALONE · LOCAL-FIRST</p>
+      <p class="eyebrow">ทำงานในเครื่อง · ข้อมูลเป็นของเรา</p>
       <h1>Cortex</h1>
     </div>
-    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRFToken}}"><button class="quiet" type="submit">Sign out · {{.AgentID}}</button></form>
+    <div class="topbar-actions">
+      {{if .Advanced}}<a class="mode-link" href="/">มุมมองทั่วไป</a>{{else}}<a class="mode-link" href="/?view=advanced">รายละเอียดขั้นสูง</a>{{end}}
+      <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRFToken}}"><button class="quiet" type="submit">ออกจากระบบ · {{.AgentID}}</button></form>
+    </div>
   </header>
   <main>
     {{if .System}}
     <section class="system-panel" aria-labelledby="system-title">
       <div class="system-copy">
-        <p class="eyebrow">SYSTEM CONTROL</p>
-        <h2 id="system-title">System control</h2>
-        <p class="system-state"><span aria-hidden="true"></span>Running · {{.System.Listen}}</p>
-        <p class="muted">Version {{.System.Version}} · PID {{.System.PID}} · up {{.System.Uptime}}</p>
+        <p class="eyebrow">สถานะระบบ</p>
+        <h2 id="system-title">ระบบพร้อมใช้งาน</h2>
+        <p class="system-state"><span aria-hidden="true"></span>กำลังทำงานในเครื่อง</p>
+        {{if .Advanced}}<p class="muted">{{.System.Listen}} · Version {{.System.Version}} · PID {{.System.PID}} · เปิดมาแล้ว {{.System.Uptime}}</p>{{end}}
       </div>
       <div class="system-actions">
         <form method="post" action="/ui/hermes/sync">
           <input type="hidden" name="csrf" value="{{.CSRFToken}}">
-          <button type="submit" {{if .System.Syncing}}disabled{{end}}>Discover &amp; connect agents</button>
+          <button type="submit" {{if .System.Syncing}}disabled{{end}}>ค้นหาและเชื่อมเอเจนต์</button>
         </form>
         <form method="post" action="/ui/system/action">
           <input type="hidden" name="csrf" value="{{.CSRFToken}}">
-          <button class="quiet" name="action" value="restart" type="submit">Restart Cortex</button>
+          <button class="quiet" name="action" value="restart" type="submit">เริ่ม Cortex ใหม่</button>
         </form>
         <form method="post" action="/ui/system/action" class="stop-form">
           <input type="hidden" name="csrf" value="{{.CSRFToken}}">
-          <label><input type="checkbox" name="confirm" value="stop" required> Confirm stop</label>
-          <button class="danger" name="action" value="stop" type="submit">Stop Cortex</button>
+          <label><input type="checkbox" name="confirm" value="stop" required> ยืนยันการปิด</label>
+          <button class="danger" name="action" value="stop" type="submit">ปิด Cortex</button>
         </form>
       </div>
     </section>
     {{else if .SystemErr}}
-    <p class="notice" role="alert">System status unavailable: {{.SystemErr}}</p>
+    <p class="notice" role="alert">ตรวจสถานะระบบไม่ได้: {{.SystemErr}}</p>
     {{end}}
-    <section class="stats" aria-label="Memory overview">
-      <article><strong>{{.Total}}</strong><span>Total</span></article>
-      <article><strong>{{.Candidate}}</strong><span>Waiting review</span></article>
-      <article><strong>{{.Active}}</strong><span>Active</span></article>
-      <article><strong>{{.Canonical}}</strong><span>Canonical</span></article>
+
+    <section class="stats" aria-label="ภาพรวมคลังความรู้">
+      <article><strong>{{.Total}}</strong><span>ความรู้ทั้งหมด</span></article>
+      <article><strong>{{.Candidate}}</strong><span>รอตรวจ</span></article>
+      <article><strong>{{.Active}}</strong><span>ใช้งานได้</span></article>
+      <article><strong>{{.Canonical}}</strong><span>กฎหลัก</span></article>
     </section>
+
     <section class="section-head explorer-head">
-      <div><p class="eyebrow">AUDITABLE SECOND BRAIN</p><h2>Memory explorer</h2></div>
-      <p class="muted">{{.Matched}} matching {{if eq .Matched 1}}record{{else}}records{{end}} · truth and utility stay separate.</p>
+      <div><p class="eyebrow">สมองที่สองที่ตรวจสอบย้อนหลังได้</p><h2>คลังความรู้</h2></div>
+      <p class="muted">พบ {{.Matched}} รายการ · ความน่าเชื่อถือและประโยชน์ถูกติดตามแยกกัน</p>
     </section>
-    <form class="explorer" method="get" action="/" aria-label="Filter memories">
-      <label class="search-field"><span>Search</span><input type="search" name="q" value="{{.Filters.Text}}" placeholder="Decision, lesson, failure, project…"></label>
-      <label><span>Lifecycle</span><select name="lifecycle">
-        <option value="">Any</option>
-        <option value="candidate" {{if eq .Filters.Lifecycle "candidate"}}selected{{end}}>Candidate</option>
-        <option value="active" {{if eq .Filters.Lifecycle "active"}}selected{{end}}>Active</option>
-        <option value="canonical" {{if eq .Filters.Lifecycle "canonical"}}selected{{end}}>Canonical</option>
-        <option value="rejected" {{if eq .Filters.Lifecycle "rejected"}}selected{{end}}>Rejected</option>
-        <option value="superseded" {{if eq .Filters.Lifecycle "superseded"}}selected{{end}}>Superseded</option>
-        <option value="archived" {{if eq .Filters.Lifecycle "archived"}}selected{{end}}>Archived</option>
+    <form class="explorer" method="get" action="/" aria-label="ค้นหาและกรองความรู้">
+      {{if .Advanced}}<input type="hidden" name="view" value="advanced">{{end}}
+      <label class="search-field"><span>ค้นหา</span><input type="search" name="q" value="{{.Filters.Text}}" placeholder="ข้อตัดสินใจ บทเรียน ปัญหา หรือชื่อโปรเจกต์"></label>
+      <label><span>สถานะ</span><select name="lifecycle">
+        <option value="">ทุกสถานะ</option>
+        <option value="candidate" {{if eq .Filters.Lifecycle "candidate"}}selected{{end}}>รอตรวจ</option>
+        <option value="active" {{if eq .Filters.Lifecycle "active"}}selected{{end}}>ใช้งานได้</option>
+        <option value="canonical" {{if eq .Filters.Lifecycle "canonical"}}selected{{end}}>กฎหลัก</option>
+        <option value="rejected" {{if eq .Filters.Lifecycle "rejected"}}selected{{end}}>ไม่รับ</option>
+        <option value="superseded" {{if eq .Filters.Lifecycle "superseded"}}selected{{end}}>มีข้อมูลใหม่แทนแล้ว</option>
+        <option value="archived" {{if eq .Filters.Lifecycle "archived"}}selected{{end}}>เก็บเข้าคลังแล้ว</option>
       </select></label>
-      <label><span>Kind</span><select name="kind">
-        <option value="">Any</option>
-        <option value="fact" {{if eq .Filters.Kind "fact"}}selected{{end}}>Fact</option>
-        <option value="preference" {{if eq .Filters.Kind "preference"}}selected{{end}}>Preference</option>
-        <option value="decision" {{if eq .Filters.Kind "decision"}}selected{{end}}>Decision</option>
-        <option value="failed_attempt" {{if eq .Filters.Kind "failed_attempt"}}selected{{end}}>Failed attempt</option>
-        <option value="solution" {{if eq .Filters.Kind "solution"}}selected{{end}}>Solution</option>
-        <option value="project_state" {{if eq .Filters.Kind "project_state"}}selected{{end}}>Project state</option>
+      <label><span>ประเภท</span><select name="kind">
+        <option value="">ทุกประเภท</option>
+        <option value="fact" {{if eq .Filters.Kind "fact"}}selected{{end}}>ข้อมูล</option>
+        <option value="preference" {{if eq .Filters.Kind "preference"}}selected{{end}}>ความชอบ</option>
+        <option value="decision" {{if eq .Filters.Kind "decision"}}selected{{end}}>ข้อตัดสินใจ</option>
+        <option value="failed_attempt" {{if eq .Filters.Kind "failed_attempt"}}selected{{end}}>วิธีที่เคยพลาด</option>
+        <option value="solution" {{if eq .Filters.Kind "solution"}}selected{{end}}>วิธีที่ใช้ได้</option>
+        <option value="project_state" {{if eq .Filters.Kind "project_state"}}selected{{end}}>สถานะงาน</option>
       </select></label>
-      <label><span>Scope</span><select name="scope">
-        <option value="">Any</option>
-        <option value="global" {{if eq .Filters.Scope "global"}}selected{{end}}>Global</option>
-        <option value="project" {{if eq .Filters.Scope "project"}}selected{{end}}>Project</option>
-        <option value="domain" {{if eq .Filters.Scope "domain"}}selected{{end}}>Domain</option>
-        <option value="private" {{if eq .Filters.Scope "private"}}selected{{end}}>Private</option>
+      <label><span>ใช้กับ</span><select name="scope">
+        <option value="">ทุกขอบเขต</option>
+        <option value="global" {{if eq .Filters.Scope "global"}}selected{{end}}>ทุกเอเจนต์</option>
+        <option value="project" {{if eq .Filters.Scope "project"}}selected{{end}}>โปรเจกต์</option>
+        <option value="domain" {{if eq .Filters.Scope "domain"}}selected{{end}}>สายงาน</option>
+        <option value="private" {{if eq .Filters.Scope "private"}}selected{{end}}>เฉพาะเอเจนต์</option>
       </select></label>
-      <label><span>Scope key</span><input name="scope_key" value="{{.Filters.ScopeKey}}" placeholder="novelclaw or coding"></label>
-      <label><span>Created by</span><input name="created_by" value="{{.Filters.CreatedBy}}" placeholder="sola"></label>
-      <div class="explorer-actions"><button type="submit">Apply filters</button><a class="quiet-link" href="/">Clear</a></div>
+      {{if .Advanced}}
+      <label><span>Project / domain key</span><input name="scope_key" value="{{.Filters.ScopeKey}}" placeholder="novelclaw หรือ coding"></label>
+      <label><span>ผู้บันทึก</span><input name="created_by" value="{{.Filters.CreatedBy}}" placeholder="sola"></label>
+      {{end}}
+      <div class="explorer-actions"><button type="submit">ค้นหา</button><a class="quiet-link" href="/{{if .Advanced}}?view=advanced{{end}}">ล้างตัวกรอง</a></div>
     </form>
-    <section class="memory-list">
+
+    <section class="memory-list" aria-label="รายการความรู้">
       {{range .Memories}}
       <article class="memory-card">
         <div class="memory-meta">
-          <span class="status status-{{.Lifecycle}}">{{.Lifecycle}}</span>
-          <span>{{.Kind}}</span><span>{{.Scope}}{{if .ScopeKey}} · {{.ScopeKey}}{{end}}</span>
+          <span class="status status-{{.Lifecycle}}">{{.LifecycleLabel}}</span>
+          <span>{{.KindLabel}}</span><span>{{.AppliesTo}}</span>
         </div>
-        <h3><a href="/ui/memories/{{.ID}}">{{.Title}}</a></h3>
+        <h3><a href="/ui/memories/{{.ID}}{{if $.Advanced}}?view=advanced{{end}}">{{.Title}}</a></h3>
         <p>{{.Content}}</p>
+        <p class="guidance"><strong>คำแนะนำ:</strong> {{.Guidance}}</p>
         <dl>
-          <div><dt>Truth</dt><dd>{{printf "%.2f" .TruthScore}}</dd></div>
-          <div><dt>Utility</dt><dd>{{printf "%.2f" .UtilityScore}}</dd></div>
-          <div><dt>Created by</dt><dd>{{.CreatedBy}}</dd></div>
-          <div><dt>Source</dt><dd>{{if .SourceRef}}{{.SourceRef}}{{else}}—{{end}}</dd></div>
+          <div><dt>ความน่าเชื่อถือ</dt><dd>{{.TrustLabel}}</dd></div>
+          <div><dt>ประโยชน์จากการใช้</dt><dd>{{.UtilityLabel}}</dd></div>
+          <div><dt>ใช้กับ</dt><dd>{{.AppliesTo}}</dd></div>
+          <div><dt>หลักฐาน</dt><dd>{{.EvidenceLabel}}</dd></div>
         </dl>
+        {{if $.Advanced}}
+        <dl class="technical-details" aria-label="รายละเอียดทางเทคนิค">
+          <div><dt>Lifecycle</dt><dd>{{.Lifecycle}}</dd></div>
+          <div><dt>Kind</dt><dd>{{.Kind}}</dd></div>
+          <div><dt>Truth score</dt><dd>{{printf "%.2f" .TruthScore}}</dd></div>
+          <div><dt>Utility score</dt><dd>{{printf "%.2f" .UtilityScore}}</dd></div>
+          <div><dt>Created by</dt><dd>{{.CreatedBy}}</dd></div>
+          <div><dt>Revision</dt><dd>{{.Revision}}</dd></div>
+          <div><dt>Memory key</dt><dd>{{.MemoryKey}}</dd></div>
+          <div><dt>Source ref</dt><dd>{{if .SourceRef}}{{.SourceRef}}{{else}}—{{end}}</dd></div>
+        </dl>
+        {{end}}
         {{if or .CanApprove .CanPromote .CanReject .CanArchive}}
         <form method="post" action="/ui/memories/{{.ID}}/review" class="review-form">
           <input type="hidden" name="csrf" value="{{$.CSRFToken}}">
-          <input name="reason" placeholder="Review reason (optional)" aria-label="Review reason">
+          <input name="reason" placeholder="เหตุผลเพิ่มเติม (ไม่จำเป็น)" aria-label="เหตุผลประกอบการตัดสินใจ">
           <div class="actions">
-            {{if .CanApprove}}<button name="decision" value="approve" type="submit">Approve</button>{{end}}
-            {{if .CanPromote}}<button name="decision" value="promote" type="submit">Promote</button>{{end}}
-            {{if .CanReject}}<button class="danger" name="decision" value="reject" type="submit">Reject</button>{{end}}
-            {{if .CanSupersede}}<button class="quiet" name="decision" value="supersede" type="submit">Supersede</button>{{end}}
-            {{if .CanArchive}}<button class="quiet" name="decision" value="archive" type="submit">Archive</button>{{end}}
+            {{if .CanApprove}}<button name="decision" value="approve" type="submit">รับไปใช้งาน</button>{{end}}
+            {{if .CanPromote}}<button name="decision" value="promote" type="submit">ตั้งเป็นกฎหลัก</button>{{end}}
+            {{if .CanReject}}<button class="danger" name="decision" value="reject" type="submit">ไม่รับ</button>{{end}}
+            {{if .CanSupersede}}<button class="quiet" name="decision" value="supersede" type="submit">มีข้อมูลใหม่แทน</button>{{end}}
+            {{if .CanArchive}}<button class="quiet" name="decision" value="archive" type="submit">เก็บเข้าคลัง</button>{{end}}
           </div>
         </form>
         {{end}}
       </article>
       {{else}}
-      <div class="empty"><h3>No matching memory</h3><p>Adjust the filters or let an agent capture a new lesson.</p></div>
+      <div class="empty" role="status"><h3>ไม่พบความรู้ที่ตรงกัน</h3><p>ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
       {{end}}
     </section>
   </main>

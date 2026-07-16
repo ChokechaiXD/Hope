@@ -22,6 +22,8 @@ input:focus, select:focus { outline: 2px solid var(--mint); outline-offset: 2px;
 button:focus-visible, a:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
 .topbar, main { width: min(1120px, calc(100% - 2rem)); margin-inline: auto; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 2rem 0 1rem; }
+.topbar-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .75rem; }
+.mode-link { color: var(--mint); text-decoration: none; font-weight: 700; }
 h1, h2, h3, p { margin-top: 0; }
 h1 { margin-bottom: 0; letter-spacing: -.04em; }
 .eyebrow { margin-bottom: .2rem; color: var(--mint); font: 700 .72rem/1.2 ui-monospace, monospace; letter-spacing: .14em; }
@@ -49,6 +51,7 @@ h1 { margin-bottom: 0; letter-spacing: -.04em; }
 .memory-card, .empty { border: 1px solid var(--line); border-radius: .9rem; padding: 1.15rem; background: var(--panel); }
 .memory-card h3 { margin: .65rem 0 .35rem; }
 .memory-card h3 a { text-decoration-color: var(--line); text-underline-offset: .2em; }
+.guidance { margin: .9rem 0 0; padding: .75rem .85rem; border-left: 3px solid var(--amber); background: #111714; color: var(--text); }
 .memory-meta { display: flex; flex-wrap: wrap; gap: .6rem; color: var(--muted); font-size: .8rem; }
 .status { border-radius: 999px; padding: .08rem .5rem; background: #222b27; color: var(--text); }
 .status-candidate { color: var(--amber); }
@@ -57,6 +60,10 @@ dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem
 dl div { min-width: 0; }
 dt { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
 dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
+.technical-details { padding-top: 1rem; border-top: 1px dashed var(--line); }
+.review-summary { margin: 1.25rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: #101613; }
+.review-summary h3 { margin-bottom: .5rem; }
+.summary-grid { margin-bottom: 0; }
 .review-form { display: grid; grid-template-columns: minmax(12rem, 1fr) auto; gap: .65rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .actions { display: flex; flex-wrap: wrap; gap: .45rem; }
 .login-shell { min-height: 100vh; display: grid; place-items: center; padding: 1rem; }
@@ -77,5 +84,6 @@ dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
   .explorer .search-field { grid-column: auto; }
   .system-panel, .system-actions { align-items: stretch; display: grid; grid-template-columns: 1fr; }
   dl { grid-template-columns: repeat(2, 1fr); }
-  .topbar { align-items: flex-start; }
+  .topbar { align-items: flex-start; gap: 1rem; }
+  .topbar-actions { align-items: flex-end; flex-direction: column; }
 }

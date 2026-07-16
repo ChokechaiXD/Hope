@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,46 +8,71 @@
 </head>
 <body>
   <header class="topbar">
-    <div><p class="eyebrow">MEMORY HISTORY</p><h1>Cortex</h1></div>
-    <a class="back-link" href="/">← Memory control</a>
+    <div><p class="eyebrow">ตรวจความรู้ก่อนนำไปใช้</p><h1>Cortex</h1></div>
+    <div class="topbar-actions">
+      {{if .Advanced}}<a class="mode-link" href="/ui/memories/{{.Memory.ID}}">มุมมองทั่วไป</a>{{else}}<a class="mode-link" href="/ui/memories/{{.Memory.ID}}?view=advanced">รายละเอียดขั้นสูง</a>{{end}}
+      <a class="back-link" href="/{{if .Advanced}}?view=advanced{{end}}">← กลับคลังความรู้</a>
+    </div>
   </header>
   <main>
     <article class="memory-card detail-card">
       <div class="memory-meta">
-        <span class="status status-{{.Memory.Lifecycle}}">{{.Memory.Lifecycle}}</span>
-        <span>{{.Memory.Kind}}</span><span>{{.Memory.Scope}}{{if .Memory.ScopeKey}} · {{.Memory.ScopeKey}}{{end}}</span>
-        <span>Revision {{.Memory.Revision}}</span>
+        <span class="status status-{{.Memory.Lifecycle}}">{{.Memory.LifecycleLabel}}</span>
+        <span>{{.Memory.KindLabel}}</span><span>{{.Memory.AppliesTo}}</span>
       </div>
       <h2>{{.Memory.Title}}</h2>
       <p>{{.Memory.Content}}</p>
-      <dl>
-        <div><dt>Truth</dt><dd>{{printf "%.2f" .Memory.TruthScore}}</dd></div>
-        <div><dt>Utility</dt><dd>{{printf "%.2f" .Memory.UtilityScore}}</dd></div>
+
+      <section class="review-summary" aria-labelledby="review-summary-title">
+        <div>
+          <p class="eyebrow">อ่านส่วนนี้ก่อนตัดสินใจ</p>
+          <h3 id="review-summary-title">สรุปก่อนตัดสินใจ</h3>
+        </div>
+        <p class="guidance"><strong>คำแนะนำ:</strong> {{.Memory.Guidance}}</p>
+        <dl class="summary-grid">
+          <div><dt>ใช้กับ</dt><dd>{{.Memory.AppliesTo}}</dd></div>
+          <div><dt>ความน่าเชื่อถือ</dt><dd>{{.Memory.TrustLabel}}</dd></div>
+          <div><dt>เคยช่วยงาน</dt><dd>{{.Memory.UtilityLabel}}</dd></div>
+          <div><dt>หลักฐาน</dt><dd>{{.Memory.EvidenceLabel}}</dd></div>
+        </dl>
+      </section>
+
+      {{if .Advanced}}
+      <dl class="technical-details" aria-label="รายละเอียดทางเทคนิค">
+        <div><dt>Lifecycle</dt><dd>{{.Memory.Lifecycle}}</dd></div>
+        <div><dt>Kind</dt><dd>{{.Memory.Kind}}</dd></div>
+        <div><dt>Scope</dt><dd>{{.Memory.Scope}}{{if .Memory.ScopeKey}} · {{.Memory.ScopeKey}}{{end}}</dd></div>
+        <div><dt>Revision</dt><dd>{{.Memory.Revision}}</dd></div>
+        <div><dt>Truth score</dt><dd>{{printf "%.2f" .Memory.TruthScore}}</dd></div>
+        <div><dt>Utility score</dt><dd>{{printf "%.2f" .Memory.UtilityScore}}</dd></div>
         <div><dt>Created by</dt><dd>{{.Memory.CreatedBy}}</dd></div>
-        <div><dt>Source</dt><dd>{{if .Memory.SourceRef}}{{.Memory.SourceRef}}{{else}}—{{end}}</dd></div>
+        <div><dt>Source ref</dt><dd>{{if .Memory.SourceRef}}{{.Memory.SourceRef}}{{else}}—{{end}}</dd></div>
       </dl>
+      {{end}}
+
       <form method="post" action="/ui/memories/{{.Memory.ID}}/review" class="review-form">
         <input type="hidden" name="csrf" value="{{.CSRFToken}}">
         <input type="hidden" name="return_to" value="/ui/memories/{{.Memory.ID}}">
-        <input name="reason" placeholder="Review reason (optional)" aria-label="Review reason">
+        <input name="reason" placeholder="เหตุผลเพิ่มเติม (ไม่จำเป็น)" aria-label="เหตุผลประกอบการตัดสินใจ">
         <div class="actions">
-          {{if .Memory.CanApprove}}<button name="decision" value="approve" type="submit">Approve</button>{{end}}
-          {{if .Memory.CanPromote}}<button name="decision" value="promote" type="submit">Promote</button>{{end}}
-          {{if .Memory.CanReject}}<button class="danger" name="decision" value="reject" type="submit">Reject</button>{{end}}
-          {{if .Memory.CanSupersede}}<button class="quiet" name="decision" value="supersede" type="submit">Supersede</button>{{end}}
-          {{if .Memory.CanArchive}}<button class="quiet" name="decision" value="archive" type="submit">Archive</button>{{end}}
+          {{if .Memory.CanApprove}}<button name="decision" value="approve" type="submit">รับไปใช้งาน</button>{{end}}
+          {{if .Memory.CanPromote}}<button name="decision" value="promote" type="submit">ตั้งเป็นกฎหลัก</button>{{end}}
+          {{if .Memory.CanReject}}<button class="danger" name="decision" value="reject" type="submit">ไม่รับ</button>{{end}}
+          {{if .Memory.CanSupersede}}<button class="quiet" name="decision" value="supersede" type="submit">มีข้อมูลใหม่แทน</button>{{end}}
+          {{if .Memory.CanArchive}}<button class="quiet" name="decision" value="archive" type="submit">เก็บเข้าคลัง</button>{{end}}
         </div>
       </form>
     </article>
-    <section class="section-head history-head"><div><p class="eyebrow">IMMUTABLE LEDGER</p><h2>Usage and changes</h2></div></section>
+
+    <section class="section-head history-head"><div><p class="eyebrow">ประวัติที่ไม่เขียนทับกัน</p><h2>การใช้งานและการเปลี่ยนแปลง</h2></div></section>
     <ol class="event-list">
       {{range .Events}}
       <li>
-        <div><strong>{{.Type}}</strong><span>{{.CreatedAt.Format "2006-01-02 15:04:05Z07:00"}}</span></div>
-        <p>Actor: {{.ActorID}}{{if .SessionID}} · Session: {{.SessionID}}{{end}}{{if .Reason}} · {{.Reason}}{{end}}</p>
-        {{if ne .MetadataJSON "null"}}<code>{{.MetadataJSON}}</code>{{end}}
+        <div><strong>{{.Label}}</strong><span>{{.CreatedAt.Format "2006-01-02 15:04:05Z07:00"}}</span></div>
+        <p>โดย {{.ActorID}}{{if .SessionID}} · Session {{.SessionID}}{{end}}{{if .Reason}} · {{.Reason}}{{end}}</p>
+        {{if $.Advanced}}{{if ne .MetadataJSON "null"}}<code>{{.MetadataJSON}}</code>{{end}}{{end}}
       </li>
-      {{else}}<li>No events recorded.</li>{{end}}
+      {{else}}<li>ยังไม่มีประวัติ</li>{{end}}
     </ol>
   </main>
 </body>

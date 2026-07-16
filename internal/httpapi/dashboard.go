@@ -25,6 +25,7 @@ var dashboardTemplates = template.Must(template.ParseFS(dashboardAssets, "templa
 type dashboardView struct {
 	AgentID   string
 	CSRFToken string
+	Advanced  bool
 	Total     int
 	Candidate int
 	Active    int
@@ -55,24 +56,17 @@ type dashboardSystem struct {
 	Syncing bool
 }
 
-type dashboardMemory struct {
-	cortex.Memory
-	CanApprove   bool
-	CanPromote   bool
-	CanReject    bool
-	CanSupersede bool
-	CanArchive   bool
-}
-
 type dashboardDetailView struct {
 	AgentID   string
 	CSRFToken string
+	Advanced  bool
 	Memory    dashboardMemory
 	Events    []dashboardEvent
 }
 
 type dashboardEvent struct {
 	cortex.Event
+	Label        string
 	MetadataJSON string
 }
 
@@ -111,6 +105,7 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 	view := dashboardView{
 		AgentID:   session.AgentID,
 		CSRFToken: session.CSRFToken,
+		Advanced:  request.URL.Query().Get("view") == "advanced",
 		Candidate: counts[cortex.LifecycleCandidate],
 		Active:    counts[cortex.LifecycleActive],
 		Canonical: counts[cortex.LifecycleCanonical],
@@ -121,12 +116,7 @@ func (server *Server) dashboard(writer http.ResponseWriter, request *http.Reques
 		view.Total += count
 	}
 	for _, memory := range browsed.Memories {
-		item := dashboardMemory{Memory: memory, CanArchive: memory.Lifecycle != cortex.LifecycleArchived}
-		item.CanApprove = memory.Lifecycle == cortex.LifecycleCandidate
-		item.CanPromote = memory.Lifecycle == cortex.LifecycleActive
-		item.CanReject = memory.Lifecycle == cortex.LifecycleCandidate || memory.Lifecycle == cortex.LifecycleActive
-		item.CanSupersede = memory.Lifecycle != cortex.LifecycleSuperseded && memory.Lifecycle != cortex.LifecycleArchived
-		view.Memories = append(view.Memories, item)
+		view.Memories = append(view.Memories, presentMemory(memory))
 	}
 	if server.control != nil {
 		status, statusErr := server.control.Status(request.Context())
@@ -219,13 +209,13 @@ func (server *Server) systemAction(writer http.ResponseWriter, request *http.Req
 	view := systemActionView{}
 	switch action {
 	case controlcenter.ActionRestart:
-		view = systemActionView{Title: "Restarting Cortex", Message: "Cortex is reopening on the same local port.", Restart: true}
+		view = systemActionView{Title: "กำลังเริ่ม Cortex ใหม่", Message: "Cortex จะกลับมาทำงานที่พอร์ตเดิมโดยอัตโนมัติ", Restart: true}
 	case controlcenter.ActionStop:
 		if request.FormValue("confirm") != "stop" {
 			http.Error(writer, "stop confirmation is required", http.StatusBadRequest)
 			return
 		}
-		view = systemActionView{Title: "Cortex is stopping", Message: "Use Cortex Dashboard from the Start menu to open it again."}
+		view = systemActionView{Title: "กำลังปิด Cortex", Message: "เปิดอีกครั้งได้จาก Cortex Dashboard ในเมนู Start"}
 	default:
 		http.Error(writer, "unknown system action", http.StatusBadRequest)
 		return
@@ -351,15 +341,15 @@ func (server *Server) dashboardDetail(writer http.ResponseWriter, request *http.
 		writeDomainError(writer, err)
 		return
 	}
-	item := dashboardMemory{Memory: memory, CanArchive: memory.Lifecycle != cortex.LifecycleArchived}
-	item.CanApprove = memory.Lifecycle == cortex.LifecycleCandidate
-	item.CanPromote = memory.Lifecycle == cortex.LifecycleActive
-	item.CanReject = memory.Lifecycle == cortex.LifecycleCandidate || memory.Lifecycle == cortex.LifecycleActive
-	item.CanSupersede = memory.Lifecycle != cortex.LifecycleSuperseded && memory.Lifecycle != cortex.LifecycleArchived
-	view := dashboardDetailView{AgentID: session.AgentID, CSRFToken: session.CSRFToken, Memory: item}
+	view := dashboardDetailView{
+		AgentID: session.AgentID, CSRFToken: session.CSRFToken,
+		Advanced: request.URL.Query().Get("view") == "advanced", Memory: presentMemory(memory),
+	}
 	for _, event := range events {
 		metadata, _ := json.Marshal(event.Metadata)
-		view.Events = append(view.Events, dashboardEvent{Event: event, MetadataJSON: string(metadata)})
+		view.Events = append(view.Events, dashboardEvent{
+			Event: event, Label: eventLabel(event.Type), MetadataJSON: string(metadata),
+		})
 	}
 	writer.Header().Set("Cache-Control", "no-store")
 	if err := dashboardTemplates.ExecuteTemplate(writer, "detail.html", view); err != nil {

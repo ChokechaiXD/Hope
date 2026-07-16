@@ -63,12 +63,12 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 		t.Fatalf("login cookies = %#v", cookies)
 	}
 
-	dashboardRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+	dashboardRequest := httptest.NewRequest(http.MethodGet, "/?view=advanced", nil)
 	dashboardRequest.AddCookie(cookies[0])
 	dashboard := httptest.NewRecorder()
 	handler.ServeHTTP(dashboard, dashboardRequest)
 	body := dashboard.Body.String()
-	for _, expected := range []string{"System control", "Running", "127.0.0.1:7777", "PID 4242", "Restart Cortex", "Stop Cortex", "Discover &amp; connect agents"} {
+	for _, expected := range []string{"ระบบพร้อมใช้งาน", "กำลังทำงานในเครื่อง", "127.0.0.1:7777", "PID 4242", "เริ่ม Cortex ใหม่", "ปิด Cortex", "ค้นหาและเชื่อมเอเจนต์"} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("dashboard omitted %q: %s", expected, body)
 		}
@@ -92,7 +92,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	synced := httptest.NewRecorder()
 	handler.ServeHTTP(synced, syncRequest)
 	if synced.Code != http.StatusOK || control.synced != 1 ||
-		!strings.Contains(synced.Body.String(), "5 agents connected") ||
+		!strings.Contains(synced.Body.String(), "เชื่อมเอเจนต์แล้ว 5 ตัว") ||
 		!strings.Contains(synced.Body.String(), `C:\Cortex\backups\sync`) {
 		t.Fatalf("sync status=%d calls=%d body=%s", synced.Code, control.synced, synced.Body.String())
 	}
@@ -103,7 +103,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	restartRequest.AddCookie(cookies[0])
 	restart := httptest.NewRecorder()
 	handler.ServeHTTP(restart, restartRequest)
-	if restart.Code != http.StatusAccepted || !strings.Contains(restart.Body.String(), "Restarting Cortex") ||
+	if restart.Code != http.StatusAccepted || !strings.Contains(restart.Body.String(), "กำลังเริ่ม Cortex ใหม่") ||
 		len(control.requested) != 1 || control.requested[0] != controlcenter.ActionRestart {
 		t.Fatalf("restart status=%d body=%s actions=%#v", restart.Code, restart.Body.String(), control.requested)
 	}
@@ -124,7 +124,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	confirmedRequest.AddCookie(cookies[0])
 	confirmed := httptest.NewRecorder()
 	handler.ServeHTTP(confirmed, confirmedRequest)
-	if confirmed.Code != http.StatusAccepted || !strings.Contains(confirmed.Body.String(), "Cortex is stopping") ||
+	if confirmed.Code != http.StatusAccepted || !strings.Contains(confirmed.Body.String(), "กำลังปิด Cortex") ||
 		len(control.requested) != 2 || control.requested[1] != controlcenter.ActionStop {
 		t.Fatalf("confirmed stop status=%d body=%s actions=%#v", confirmed.Code, confirmed.Body.String(), control.requested)
 	}

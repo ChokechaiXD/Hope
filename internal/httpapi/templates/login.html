@@ -1,20 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cortex · Sign in</title>
+  <title>Cortex · เข้าสู่ระบบ</title>
   <link rel="stylesheet" href="/static/cortex.css">
 </head>
 <body class="login-shell">
   <main class="login-card">
-    <p class="eyebrow">LOCAL MEMORY HUB</p>
+    <p class="eyebrow">คลังความรู้ส่วนตัวในเครื่อง</p>
     <h1>Cortex</h1>
-    <p class="muted">Sign in with an administrator token. Cortex exchanges it for a short-lived local session.</p>
+    <p class="muted">วางรหัสผู้ดูแลเพื่อเปิดหน้าจัดการ รหัสจะใช้เฉพาะกับ Cortex ในเครื่องนี้</p>
     <form method="post" action="/login" class="stack">
-      <label for="token">Administrator token</label>
+      <label for="token">รหัสผู้ดูแล</label>
       <input id="token" name="token" type="password" required autocomplete="current-password" autofocus>
-      <button type="submit">Sign in</button>
+      <button type="submit">เข้าสู่ระบบ</button>
     </form>
   </main>
 </body>
