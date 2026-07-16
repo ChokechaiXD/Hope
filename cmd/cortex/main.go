@@ -24,6 +24,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runInit(args[1:], stdout, stderr)
 	case "agent":
 		return runAgent(args[1:], stdout, stderr)
+	case "dashboard":
+		return runDashboard(args[1:], stdout, stderr)
 	case "serve":
 		return runServe(args[1:], stdout, stderr)
 	case "open":
@@ -54,6 +56,7 @@ Usage:
   cortex init [--data-dir DIR] [--admin AGENT] [--listen ADDRESS]
   cortex agent add --id AGENT [--admin] [--data-dir DIR]
   cortex agent token --id AGENT [--data-dir DIR]
+  cortex dashboard pin --value PIN [--data-dir DIR]
   cortex connector sync hermes --home HERMES_HOME [--data-dir DIR]
   cortex import holographic --database MEMORY_STORE_DB --agent AGENT [--project PROJECT]
   cortex serve [--data-dir DIR] [--listen ADDRESS]

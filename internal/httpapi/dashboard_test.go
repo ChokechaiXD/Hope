@@ -337,6 +337,48 @@ func loginDashboardForTest(t *testing.T, handler http.Handler, token string) *ht
 	return response.Result().Cookies()[0]
 }
 
+type dashboardPINAuthenticator struct{}
+
+func (dashboardPINAuthenticator) Authenticate(token string) (string, bool) {
+	if token == "agent-token" {
+		return "mika", true
+	}
+	return "", false
+}
+
+func (dashboardPINAuthenticator) AuthenticateDashboard(secret string) (string, bool) {
+	if secret == "4826" {
+		return "mika", true
+	}
+	return "", false
+}
+
+func TestDashboardPINCannotAuthenticateAgentAPI(t *testing.T) {
+	t.Parallel()
+
+	hub, err := cortex.Open(cortex.Config{
+		DatabasePath: filepath.Join(t.TempDir(), "cortex.db"),
+		AdminAgents:  []string{"mika"},
+	})
+	if err != nil {
+		t.Fatalf("open Cortex: %v", err)
+	}
+	t.Cleanup(func() { _ = hub.Close() })
+	handler := New(hub, dashboardPINAuthenticator{})
+	cookie := loginDashboardForTest(t, handler, "4826")
+	if cookie == nil {
+		t.Fatal("dashboard PIN did not create a browser session")
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/v1/capabilities", nil)
+	request.Header.Set("Authorization", "Bearer 4826")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("dashboard PIN authenticated API request: status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func requestDashboardForTest(t *testing.T, handler http.Handler, cookie *http.Cookie) string {
 	t.Helper()
 	request := httptest.NewRequest(http.MethodGet, "/", nil)

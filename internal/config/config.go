@@ -23,7 +23,10 @@ const (
 	fileVersion  = 1
 )
 
-var agentIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+var (
+	agentIDPattern      = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+	dashboardPINPattern = regexp.MustCompile(`^[0-9]{4,8}$`)
+)
 
 type Credential struct {
 	AgentID   string `json:"agent_id"`
@@ -31,10 +34,11 @@ type Credential struct {
 }
 
 type File struct {
-	Version     int          `json:"version"`
-	Listen      string       `json:"listen"`
-	AdminAgents []string     `json:"admin_agents"`
-	Credentials []Credential `json:"credentials"`
+	Version          int          `json:"version"`
+	Listen           string       `json:"listen"`
+	AdminAgents      []string     `json:"admin_agents"`
+	Credentials      []Credential `json:"credentials"`
+	DashboardPINHash string       `json:"dashboard_pin_sha256,omitempty"`
 }
 
 type ReloadingAuthenticator struct {
@@ -52,15 +56,26 @@ func NewReloadingAuthenticator(dataDir string) (*ReloadingAuthenticator, error) 
 }
 
 func (auth *ReloadingAuthenticator) Authenticate(token string) (string, bool) {
+	auth.reload()
+	auth.mu.RLock()
+	defer auth.mu.RUnlock()
+	return auth.current.Authenticate(token)
+}
+
+func (auth *ReloadingAuthenticator) AuthenticateDashboard(secret string) (string, bool) {
+	auth.reload()
+	auth.mu.RLock()
+	defer auth.mu.RUnlock()
+	return auth.current.AuthenticateDashboard(secret)
+}
+
+func (auth *ReloadingAuthenticator) reload() {
 	// ponytail: the config is intentionally re-read on auth; it is tiny and agent additions must work without restart.
 	if latest, err := Load(auth.dataDir); err == nil {
 		auth.mu.Lock()
 		auth.current = latest
 		auth.mu.Unlock()
 	}
-	auth.mu.RLock()
-	defer auth.mu.RUnlock()
-	return auth.current.Authenticate(token)
 }
 
 func Initialize(dataDir, adminAgent, listen string) (File, string, error) {
@@ -158,6 +173,19 @@ func IssueToken(dataDir, agentID string) (string, error) {
 	return token, nil
 }
 
+func SetDashboardPIN(dataDir, pin string) error {
+	pin = strings.TrimSpace(pin)
+	if !dashboardPINPattern.MatchString(pin) {
+		return fmt.Errorf("dashboard PIN must contain 4 to 8 digits")
+	}
+	config, err := Load(dataDir)
+	if err != nil {
+		return err
+	}
+	config.DashboardPINHash = tokenHash(pin)
+	return writeAtomic(filepath.Join(dataDir, FileName), config)
+}
+
 func (config File) Authenticate(token string) (string, bool) {
 	hash := tokenHash(token)
 	for _, credential := range config.Credentials {
@@ -166,6 +194,17 @@ func (config File) Authenticate(token string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func (config File) AuthenticateDashboard(secret string) (string, bool) {
+	if config.DashboardPINHash == "" || len(config.AdminAgents) == 0 {
+		return "", false
+	}
+	hash := tokenHash(strings.TrimSpace(secret))
+	if subtle.ConstantTimeCompare([]byte(hash), []byte(config.DashboardPINHash)) != 1 {
+		return "", false
+	}
+	return config.AdminAgents[0], true
 }
 
 func (config File) IsAdmin(agentID string) bool {
@@ -217,6 +256,9 @@ func (config File) validate() error {
 		if _, exists := knownAgents[admin]; !exists {
 			return fmt.Errorf("admin agent %q has no credential", admin)
 		}
+	}
+	if config.DashboardPINHash != "" && len(config.DashboardPINHash) != sha256.Size*2 {
+		return fmt.Errorf("invalid dashboard PIN hash")
 	}
 	return nil
 }

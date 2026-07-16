@@ -141,6 +141,27 @@ func TestUnknownCommandFails(t *testing.T) {
 	}
 }
 
+func TestDashboardPINCommand(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"dashboard", "pin", "--data-dir", dataDir, "--value", "4826"}, &stdout, &stderr)
+	if code != 0 || !strings.Contains(stdout.String(), "dashboard_pin=updated") {
+		t.Fatalf("dashboard pin exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+	}
+	loaded, err := config.Load(dataDir)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if agentID, ok := loaded.AuthenticateDashboard("4826"); !ok || agentID != "mika" {
+		t.Fatalf("dashboard PIN authenticated as %q, %v", agentID, ok)
+	}
+}
+
 func TestServeControlLoopReopensOnlyForRestart(t *testing.T) {
 	t.Parallel()
 

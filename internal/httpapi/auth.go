@@ -10,6 +10,20 @@ type Authenticator interface {
 	Authenticate(token string) (agentID string, ok bool)
 }
 
+type DashboardAuthenticator interface {
+	AuthenticateDashboard(secret string) (agentID string, ok bool)
+}
+
+func authenticateDashboard(auth Authenticator, secret string) (string, bool) {
+	if dashboardAuth, ok := auth.(DashboardAuthenticator); ok {
+		if agentID, authenticated := dashboardAuth.AuthenticateDashboard(secret); authenticated {
+			return agentID, true
+		}
+	}
+	// ponytail: preserve the bearer-token form as a recovery path for old configs without a PIN.
+	return auth.Authenticate(secret)
+}
+
 type StaticAuthenticator map[string]string
 
 func (auth StaticAuthenticator) Authenticate(token string) (string, bool) {

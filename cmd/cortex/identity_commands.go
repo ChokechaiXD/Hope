@@ -69,3 +69,27 @@ func runAgent(args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintf(stdout, "agent=%s\ntoken=%s\n", *agentID, token)
 	return 0
 }
+
+func runDashboard(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 || args[0] != "pin" {
+		fmt.Fprintln(stderr, "usage: cortex dashboard pin --value PIN [--data-dir DIR]")
+		return 2
+	}
+	flags := flag.NewFlagSet("dashboard pin", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Cortex data directory")
+	value := flags.String("value", "", "4 to 8 digit dashboard PIN")
+	if err := flags.Parse(args[1:]); err != nil {
+		return 2
+	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "usage: cortex dashboard pin --value PIN [--data-dir DIR]")
+		return 2
+	}
+	if err := config.SetDashboardPIN(*dataDir, *value); err != nil {
+		fmt.Fprintf(stderr, "set dashboard PIN: %v\n", err)
+		return 1
+	}
+	fmt.Fprintln(stdout, "dashboard_pin=updated")
+	return 0
+}

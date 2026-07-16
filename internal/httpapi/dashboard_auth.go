@@ -13,7 +13,7 @@ func (server *Server) login(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	token := strings.TrimSpace(request.FormValue("token"))
-	agentID, ok := server.auth.Authenticate(token)
+	agentID, ok := authenticateDashboard(server.auth, token)
 	if !ok {
 		http.Error(writer, "invalid token", http.StatusUnauthorized)
 		return

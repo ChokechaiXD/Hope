@@ -44,6 +44,13 @@ bin\cortex.exe agent token --id mika
 
 Only the printed token is sensitive. Cortex persists its SHA-256 hash.
 
+For a simpler direct-browser fallback, set a 4–8 digit dashboard-only PIN. It
+is stored as a hash and is deliberately rejected by every agent API endpoint:
+
+```powershell
+bin\cortex.exe dashboard pin --value 4826
+```
+
 ## Add or refresh Hermes profiles
 
 Press **Discover & connect agents** in the dashboard after creating a profile.

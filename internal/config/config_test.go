@@ -138,3 +138,47 @@ func TestReloadingAuthenticatorAcceptsNewAgentWithoutRestart(t *testing.T) {
 		t.Fatalf("authenticate newly added agent = %q, %v", agentID, ok)
 	}
 }
+
+func TestDashboardPINIsHashedAndCannotAuthenticateAgentAPI(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	_, _, err := Initialize(dataDir, "mika", "127.0.0.1:7777")
+	if err != nil {
+		t.Fatalf("initialize config: %v", err)
+	}
+	if err := SetDashboardPIN(dataDir, "4826"); err != nil {
+		t.Fatalf("set dashboard PIN: %v", err)
+	}
+	loaded, err := Load(dataDir)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if agentID, ok := loaded.AuthenticateDashboard("4826"); !ok || agentID != "mika" {
+		t.Fatalf("dashboard PIN authenticated as %q, %v", agentID, ok)
+	}
+	if _, ok := loaded.Authenticate("4826"); ok {
+		t.Fatal("dashboard PIN authenticated as an agent bearer token")
+	}
+	raw, err := os.ReadFile(filepath.Join(dataDir, FileName))
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if strings.Contains(string(raw), "4826") {
+		t.Fatal("config persisted the raw dashboard PIN")
+	}
+}
+
+func TestDashboardPINValidation(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize config: %v", err)
+	}
+	for _, pin := range []string{"", "123", "123456789", "abcd", "12 34"} {
+		if err := SetDashboardPIN(dataDir, pin); err == nil {
+			t.Errorf("SetDashboardPIN accepted %q", pin)
+		}
+	}
+}

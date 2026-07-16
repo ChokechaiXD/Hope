@@ -89,6 +89,13 @@ Issue a fresh dashboard token without opening any connector config:
 bin\cortex.exe agent token --id mika
 ```
 
+For a simpler direct-browser fallback, set a 4–8 digit dashboard-only PIN. It
+is hashed at rest and cannot authenticate agent API calls:
+
+```powershell
+bin\cortex.exe dashboard pin --value 4826
+```
+
 Existing valid profile tokens are reused. New profiles receive isolated tokens
 and the same standalone Cortex endpoint. A running Cortex server reloads new
 regular-agent credentials automatically; restart only when granting a new
