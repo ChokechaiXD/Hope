@@ -3,12 +3,10 @@
 package autostart
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -87,7 +85,7 @@ func (controller *Controller) Status(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", commandError("query Cortex autostart", output, err)
 	}
-	return strings.TrimSpace(string(output)), nil
+	return "autostart=registered\nregistry=" + strings.TrimSpace(string(output)), nil
 }
 
 func (controller *Controller) Uninstall(ctx context.Context) error {
@@ -137,70 +135,6 @@ func cleanDataDir(dataDir string) (string, error) {
 		return "", fmt.Errorf("Cortex data directory cannot contain a quote")
 	}
 	return filepath.Clean(abs), nil
-}
-
-func installExecutable(source, destination string) error {
-	source, err := filepath.Abs(source)
-	if err != nil {
-		return fmt.Errorf("resolve source executable: %w", err)
-	}
-	if strings.EqualFold(filepath.Clean(source), filepath.Clean(destination)) {
-		return nil
-	}
-	input, err := os.Open(source)
-	if err != nil {
-		return fmt.Errorf("open Cortex executable: %w", err)
-	}
-	defer input.Close()
-	info, err := input.Stat()
-	if err != nil {
-		return fmt.Errorf("inspect Cortex executable: %w", err)
-	}
-	if !info.Mode().IsRegular() {
-		return fmt.Errorf("Cortex executable is not a regular file")
-	}
-	if existing, readErr := os.ReadFile(destination); readErr == nil {
-		sourceBytes, sourceErr := io.ReadAll(input)
-		if sourceErr != nil {
-			return fmt.Errorf("compare Cortex executable: %w", sourceErr)
-		}
-		if bytes.Equal(existing, sourceBytes) {
-			return nil
-		}
-		if _, err := input.Seek(0, io.SeekStart); err != nil {
-			return fmt.Errorf("rewind Cortex executable: %w", err)
-		}
-	}
-	if err := os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
-		return fmt.Errorf("create Cortex binary directory: %w", err)
-	}
-	temporary, err := os.CreateTemp(filepath.Dir(destination), ".cortex-*.tmp")
-	if err != nil {
-		return fmt.Errorf("create temporary Cortex executable: %w", err)
-	}
-	temporaryPath := temporary.Name()
-	defer func() { _ = os.Remove(temporaryPath) }()
-	if _, err := io.Copy(temporary, input); err != nil {
-		_ = temporary.Close()
-		return fmt.Errorf("copy Cortex executable: %w", err)
-	}
-	if err := temporary.Sync(); err != nil {
-		_ = temporary.Close()
-		return fmt.Errorf("sync Cortex executable: %w", err)
-	}
-	if err := temporary.Close(); err != nil {
-		return fmt.Errorf("close Cortex executable: %w", err)
-	}
-	if err := os.Chmod(temporaryPath, 0o700); err != nil {
-		return fmt.Errorf("protect Cortex executable: %w", err)
-	}
-	if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("replace Cortex executable: %w", err)
-	}
-	if err := os.Rename(temporaryPath, destination); err != nil {
-		return fmt.Errorf("install Cortex executable: %w", err)
-	}
-	return nil
 }
 
 func commandError(operation string, output []byte, err error) error {

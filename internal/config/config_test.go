@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,6 +55,51 @@ func TestInitializeAndAddAgent(t *testing.T) {
 	}
 	if agentID, ok := loaded.Authenticate(secondMikaToken); !ok || agentID != "mika" {
 		t.Fatalf("additional token authenticated as %q, %v", agentID, ok)
+	}
+}
+
+func TestInitializeRejectsNonLoopbackListenAddress(t *testing.T) {
+	t.Parallel()
+
+	for _, address := range []string{"0.0.0.0:7777", "192.168.1.20:7777", ":7777", "localhost"} {
+		address := address
+		t.Run(address, func(t *testing.T) {
+			t.Parallel()
+			if _, _, err := Initialize(t.TempDir(), "mika", address); err == nil {
+				t.Fatalf("Initialize accepted non-local or malformed listen address %q", address)
+			}
+		})
+	}
+}
+
+func TestLoadRejectsNonLoopbackListenAddress(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	created, _, err := Initialize(dataDir, "mika", "127.0.0.1:7777")
+	if err != nil {
+		t.Fatalf("initialize config: %v", err)
+	}
+	created.Listen = "0.0.0.0:7777"
+	raw, err := json.Marshal(created)
+	if err != nil {
+		t.Fatalf("encode invalid config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dataDir, FileName), raw, 0o600); err != nil {
+		t.Fatalf("write invalid config: %v", err)
+	}
+	if _, err := Load(dataDir); err == nil {
+		t.Fatal("Load accepted a public listen address")
+	}
+}
+
+func TestValidateListenAcceptsLoopbackIPv4IPv6AndLocalhost(t *testing.T) {
+	t.Parallel()
+
+	for _, address := range []string{"127.0.0.1:7777", "[::1]:7777", "localhost:7777"} {
+		if err := ValidateListen(address); err != nil {
+			t.Errorf("ValidateListen(%q): %v", address, err)
+		}
 	}
 }
 

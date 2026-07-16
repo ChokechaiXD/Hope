@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"cortex.local/cortex/internal/autostart"
 	"cortex.local/cortex/internal/config"
@@ -156,8 +158,120 @@ func TestServiceInstallCommandUsesConfiguredDataDirectory(t *testing.T) {
 	}
 }
 
+func TestServiceStartWaitsForHealthAndRejectsTrailingArguments(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	controller := &fakeServiceController{}
+	checker := readinessChecker{
+		probe:    func(context.Context, string) error { return errors.New("not ready") },
+		timeout:  1,
+		interval: 0,
+	}
+	var stdout, stderr bytes.Buffer
+	code := runServiceWithReadiness([]string{"start", "--data-dir", dataDir}, &stdout, &stderr, controller, checker)
+	if code != 1 || controller.startedDataDir != dataDir || !strings.Contains(stderr.String(), "health check failed") {
+		t.Fatalf("service start exit=%d started=%q stderr=%s", code, controller.startedDataDir, stderr.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	controller.startedDataDir = ""
+	code = runServiceWithReadiness([]string{"start", "--data-dir", dataDir, "ignored"}, &stdout, &stderr, controller, checker)
+	if code != 2 || controller.startedDataDir != "" {
+		t.Fatalf("trailing argument exit=%d started=%q", code, controller.startedDataDir)
+	}
+}
+
+func TestServiceStartReportsReadyOnlyAfterHealthSucceeds(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	controller := &fakeServiceController{}
+	probes := 0
+	checker := readinessChecker{
+		probe: func(context.Context, string) error {
+			probes++
+			if probes < 3 {
+				return errors.New("not ready")
+			}
+			return nil
+		},
+		timeout:  100 * time.Millisecond,
+		interval: time.Millisecond,
+	}
+	var stdout, stderr bytes.Buffer
+	code := runServiceWithReadiness([]string{"start", "--data-dir", dataDir}, &stdout, &stderr, controller, checker)
+	if code != 0 || controller.startedDataDir != dataDir || !strings.Contains(stdout.String(), "started") {
+		t.Fatalf("service start exit=%d started=%q stdout=%s stderr=%s", code, controller.startedDataDir, stdout.String(), stderr.String())
+	}
+}
+
+func TestServiceStartDoesNotSpawnDuplicateWhenAlreadyHealthy(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	controller := &fakeServiceController{}
+	checker := readinessChecker{probe: func(context.Context, string) error { return nil }}
+	var stdout, stderr bytes.Buffer
+	code := runServiceWithReadiness([]string{"start", "--data-dir", dataDir}, &stdout, &stderr, controller, checker)
+	if code != 0 || controller.startedDataDir != "" || !strings.Contains(stdout.String(), "already healthy") {
+		t.Fatalf("service start exit=%d started=%q stdout=%s stderr=%s", code, controller.startedDataDir, stdout.String(), stderr.String())
+	}
+}
+
+func TestServiceInstallRejectsTrailingArguments(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	controller := &fakeServiceController{}
+	var stdout, stderr bytes.Buffer
+	code := runService([]string{"install", "--data-dir", dataDir, "ignored"}, &stdout, &stderr, controller)
+	if code != 2 || controller.installedDataDir != "" {
+		t.Fatalf("service install trailing argument exit=%d installed=%q", code, controller.installedDataDir)
+	}
+}
+
+func TestAgentCommandRejectsTrailingArgumentsBeforeIssuingToken(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	before, err := os.ReadFile(filepath.Join(dataDir, config.FileName))
+	if err != nil {
+		t.Fatalf("read initial config: %v", err)
+	}
+	var stdout, stderr bytes.Buffer
+	code := runAgent([]string{"token", "--data-dir", dataDir, "--id", "mika", "ignored"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("agent token trailing argument exit=%d stderr=%s", code, stderr.String())
+	}
+	after, err := os.ReadFile(filepath.Join(dataDir, config.FileName))
+	if err != nil {
+		t.Fatalf("read final config: %v", err)
+	}
+	if string(before) != string(after) {
+		t.Fatal("rejected agent command still issued a credential")
+	}
+}
+
 type fakeServiceController struct {
 	installedDataDir string
+	startedDataDir   string
 }
 
 func (controller *fakeServiceController) Install(_ context.Context, dataDir string) (autostart.InstallResult, error) {
@@ -165,7 +279,8 @@ func (controller *fakeServiceController) Install(_ context.Context, dataDir stri
 	return autostart.InstallResult{EntryName: autostart.EntryName, Executable: filepath.Join(dataDir, "bin", "cortex.exe")}, nil
 }
 
-func (controller *fakeServiceController) Start(context.Context, string) (string, error) {
+func (controller *fakeServiceController) Start(_ context.Context, dataDir string) (string, error) {
+	controller.startedDataDir = dataDir
 	return "started", nil
 }
 

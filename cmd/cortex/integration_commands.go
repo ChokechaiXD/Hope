@@ -26,6 +26,10 @@ func runImport(args []string, stdout, stderr io.Writer) int {
 	if err := flags.Parse(args[1:]); err != nil {
 		return 2
 	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "usage: cortex import holographic --database MEMORY_STORE_DB --agent AGENT")
+		return 2
+	}
 	file, err := config.Load(*dataDir)
 	if err != nil {
 		fmt.Fprintf(stderr, "load config: %v\n", err)
@@ -63,14 +67,22 @@ func runConnector(args []string, stdout, stderr io.Writer) int {
 	if err := flags.Parse(args[2:]); err != nil {
 		return 2
 	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "usage: cortex connector sync hermes --home HERMES_HOME")
+		return 2
+	}
 	result, err := hermes.Sync(hermes.SyncOptions{
 		HermesHome: *hermesHome, DataDir: *dataDir, ServerURL: *serverURL,
 		RootAgent: *rootAgent, Activate: *activate,
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "sync Hermes connector: %v\n", err)
+		if result.BackupDir != "" {
+			fmt.Fprintf(stderr, "backup=%s\n", result.BackupDir)
+		}
 		return 1
 	}
+	fmt.Fprintf(stdout, "backup=%s\n", result.BackupDir)
 	for _, profile := range result.Profiles {
 		fmt.Fprintf(stdout, "profile=%s\nhome=%s\n", profile.AgentID, profile.Home)
 	}

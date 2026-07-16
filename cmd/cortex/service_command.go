@@ -18,6 +18,15 @@ type serviceController interface {
 }
 
 func runService(args []string, stdout, stderr io.Writer, controller serviceController) int {
+	return runServiceWithReadiness(args, stdout, stderr, controller, defaultReadinessChecker())
+}
+
+func runServiceWithReadiness(
+	args []string,
+	stdout, stderr io.Writer,
+	controller serviceController,
+	readiness readinessChecker,
+) int {
 	if len(args) == 0 {
 		fmt.Fprintln(stderr, "usage: cortex service install|start|status|uninstall")
 		return 2
@@ -29,6 +38,10 @@ func runService(args []string, stdout, stderr io.Writer, controller serviceContr
 		flags.SetOutput(stderr)
 		dataDir := flags.String("data-dir", config.DefaultDataDir(), "Cortex data directory")
 		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() != 0 {
+			fmt.Fprintln(stderr, "usage: cortex service install [--data-dir DIR]")
 			return 2
 		}
 		if _, err := config.Load(*dataDir); err != nil {
@@ -49,13 +62,26 @@ func runService(args []string, stdout, stderr io.Writer, controller serviceContr
 		if err := flags.Parse(args[1:]); err != nil {
 			return 2
 		}
-		if _, err := config.Load(*dataDir); err != nil {
+		if flags.NArg() != 0 {
+			fmt.Fprintln(stderr, "usage: cortex service start [--data-dir DIR]")
+			return 2
+		}
+		file, err := config.Load(*dataDir)
+		if err != nil {
 			fmt.Fprintf(stderr, "load Cortex config: %v\n", err)
 			return 1
+		}
+		if readiness.probe(ctx, file.Listen) == nil {
+			fmt.Fprintf(stdout, "Cortex already healthy at http://%s\n", file.Listen)
+			return 0
 		}
 		output, err := controller.Start(ctx, *dataDir)
 		if err != nil {
 			fmt.Fprintf(stderr, "start Cortex service: %v\n", err)
+			return 1
+		}
+		if err := readiness.wait(ctx, file.Listen); err != nil {
+			fmt.Fprintf(stderr, "start Cortex service: health check failed: %v\n", err)
 			return 1
 		}
 		fmt.Fprintln(stdout, output)

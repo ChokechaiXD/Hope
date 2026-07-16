@@ -68,8 +68,9 @@ func Initialize(dataDir, adminAgent, listen string) (File, string, error) {
 	if err != nil {
 		return File{}, "", err
 	}
-	if strings.TrimSpace(listen) == "" {
-		return File{}, "", fmt.Errorf("listen address is required")
+	listen = strings.TrimSpace(listen)
+	if err := ValidateListen(listen); err != nil {
+		return File{}, "", err
 	}
 	if err := os.MkdirAll(dataDir, 0o700); err != nil {
 		return File{}, "", fmt.Errorf("create data directory: %w", err)
@@ -80,7 +81,7 @@ func Initialize(dataDir, adminAgent, listen string) (File, string, error) {
 	}
 	config := File{
 		Version:     fileVersion,
-		Listen:      strings.TrimSpace(listen),
+		Listen:      listen,
 		AdminAgents: []string{adminAgent},
 		Credentials: []Credential{{AgentID: adminAgent, TokenHash: hash}},
 	}
@@ -194,8 +195,8 @@ func (config File) validate() error {
 	if config.Version != fileVersion {
 		return fmt.Errorf("unsupported config version %d", config.Version)
 	}
-	if strings.TrimSpace(config.Listen) == "" {
-		return fmt.Errorf("config listen address is required")
+	if err := ValidateListen(config.Listen); err != nil {
+		return fmt.Errorf("config %w", err)
 	}
 	knownAgents := make(map[string]struct{}, len(config.Credentials))
 	seenHashes := make(map[string]struct{}, len(config.Credentials))

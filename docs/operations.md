@@ -10,7 +10,8 @@
 └── backups\
 ```
 
-Cortex listens only on `127.0.0.1:7777`. Windows autostart is registered in
+Cortex accepts loopback listeners only; the default is `127.0.0.1:7777`.
+Windows autostart is registered in
 the current user's `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` key;
 administrator permission is not required.
 
@@ -21,6 +22,9 @@ Invoke-RestMethod http://127.0.0.1:7777/v1/health
 bin\cortex.exe service status
 hermes memory status
 ```
+
+`service status` reports autostart registration. The health endpoint above is
+the authoritative runtime readiness check.
 
 Open `http://127.0.0.1:7777/` for the review queue and per-memory event history.
 Generate a new administrator login token when needed:
@@ -44,6 +48,12 @@ Existing valid profile tokens are reused. New profiles receive a distinct
 credential and the running Cortex process reloads it without restart. A newly
 granted governor role requires restart because governance membership is loaded
 when the hub opens.
+
+The command prints `backup=...` before its profile list. Cortex creates that
+timestamped snapshot before changing credentials or any Hermes profile. It
+contains prior profile configs, connector files, and legacy Holographic
+database files. If any profile fails, Cortex restores every changed profile and
+its own credential config before returning an error.
 
 ## Holographic migration
 
@@ -73,13 +83,14 @@ hidden detached process at the next sign-in.
 
 ## Rollback to Holographic
 
-Every activated Hermes profile receives `config.yaml.cortex.bak`. A timestamped
-pre-migration snapshot is also stored under `%LOCALAPPDATA%\Cortex\backups`.
+Every connector sync creates a timestamped pre-migration snapshot under
+`%LOCALAPPDATA%\Cortex\backups`. Keep the `backup=...` path printed by the
+sync command.
 
 1. Remove Cortex autostart with `bin\cortex.exe service uninstall`.
 2. Stop the verified Cortex process.
-3. Restore each profile's `config.yaml.cortex.bak` to `config.yaml`, or restore
-   the matching file from the timestamped backup.
+3. Restore each profile's matching `hermes\<agent>\config.yaml` from the
+   timestamped backup to its Hermes home.
 4. Start a new Hermes session and run `hermes memory status`.
 
 The original `memory_store.db`, WAL, and SHM files are never modified by the

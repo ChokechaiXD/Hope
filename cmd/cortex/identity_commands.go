@@ -17,6 +17,10 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "usage: cortex init [--data-dir DIR] [--admin AGENT] [--listen ADDRESS]")
+		return 2
+	}
 	_, token, err := config.Initialize(*dataDir, *admin, *listen)
 	if err != nil {
 		fmt.Fprintf(stderr, "initialize Cortex: %v\n", err)
@@ -37,6 +41,10 @@ func runAgent(args []string, stdout, stderr io.Writer) int {
 	agentID := flags.String("id", "", "agent id")
 	admin := flags.Bool("admin", false, "grant review and governance permission")
 	if err := flags.Parse(args[1:]); err != nil {
+		return 2
+	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "usage: cortex agent add|token --id AGENT")
 		return 2
 	}
 	var token string

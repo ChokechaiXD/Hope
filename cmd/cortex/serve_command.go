@@ -25,6 +25,10 @@ func runServe(args []string, stdout, stderr io.Writer) int {
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "usage: cortex serve [--data-dir DIR] [--listen ADDRESS]")
+		return 2
+	}
 	file, err := config.Load(*dataDir)
 	if err != nil {
 		fmt.Fprintf(stderr, "load config: %v\n", err)
@@ -33,6 +37,10 @@ func runServe(args []string, stdout, stderr io.Writer) int {
 	address := file.Listen
 	if *listen != "" {
 		address = *listen
+	}
+	if err := config.ValidateListen(address); err != nil {
+		fmt.Fprintf(stderr, "serve Cortex: %v\n", err)
+		return 1
 	}
 	hub, err := cortex.Open(cortex.Config{DatabasePath: config.DatabasePath(*dataDir), AdminAgents: file.AdminAgents})
 	if err != nil {

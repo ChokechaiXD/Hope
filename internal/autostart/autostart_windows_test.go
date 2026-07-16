@@ -4,6 +4,7 @@ package autostart
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -54,6 +55,47 @@ func TestInstallCopiesBinaryAndRegistersUserLogonEntry(t *testing.T) {
 	}
 }
 
+func TestReplaceExecutableRestoresPreviousBinaryWhenInstallRenameFails(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	destination := filepath.Join(directory, "cortex.exe")
+	temporary := filepath.Join(directory, "new.tmp")
+	backup := filepath.Join(directory, "old.backup")
+	if err := os.WriteFile(destination, []byte("old-safe-binary"), 0o700); err != nil {
+		t.Fatalf("write old binary: %v", err)
+	}
+	if err := os.WriteFile(temporary, []byte("new-binary"), 0o700); err != nil {
+		t.Fatalf("write new binary: %v", err)
+	}
+	renameCalls := 0
+	rename := func(oldPath, newPath string) error {
+		renameCalls++
+		if oldPath == temporary && newPath == destination {
+			return errors.New("injected final rename failure")
+		}
+		return os.Rename(oldPath, newPath)
+	}
+
+	err := replaceExecutable(temporary, destination, backup, rename, os.Remove)
+	if err == nil {
+		t.Fatal("replaceExecutable succeeded despite injected rename failure")
+	}
+	if renameCalls != 3 {
+		t.Fatalf("rename calls = %d, want backup, install, restore", renameCalls)
+	}
+	installed, readErr := os.ReadFile(destination)
+	if readErr != nil {
+		t.Fatalf("old binary was not restored: %v", readErr)
+	}
+	if string(installed) != "old-safe-binary" {
+		t.Fatalf("restored binary = %q", installed)
+	}
+	if _, statErr := os.Stat(backup); !os.IsNotExist(statErr) {
+		t.Fatalf("backup remains after rollback: %v", statErr)
+	}
+}
+
 type recordedCommand struct {
 	name string
 	args []string
@@ -88,13 +130,13 @@ func TestStatusQueriesRegisteredCortexEntry(t *testing.T) {
 	var command recordedCommand
 	controller := newController(nil, func(_ context.Context, name string, args ...string) ([]byte, error) {
 		command = recordedCommand{name: name, args: slices.Clone(args)}
-		return []byte("Status: Running"), nil
+		return []byte("registry-value"), nil
 	}, nil)
 	output, err := controller.Status(context.Background())
 	if err != nil {
 		t.Fatalf("query autostart task: %v", err)
 	}
-	if output != "Status: Running" || command.name != "reg.exe" ||
+	if output != "autostart=registered\nregistry=registry-value" || command.name != "reg.exe" ||
 		!slices.Equal(command.args, []string{"QUERY", RunKey, "/V", EntryName}) {
 		t.Fatalf("output=%q command=%#v", output, command)
 	}

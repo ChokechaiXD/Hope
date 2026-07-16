@@ -58,7 +58,8 @@ When a new Hermes profile appears, run the same `connector sync hermes` command
 again. Existing valid profile tokens are reused. New profiles receive isolated
 tokens and the same standalone Cortex endpoint. A running Cortex server reloads
 new regular-agent credentials automatically; restart only when granting a new
-governor role.
+governor role. Connector sync creates a timestamped rollback snapshot and
+restores every affected profile automatically if any profile fails.
 
 ## Import Holographic memory
 
