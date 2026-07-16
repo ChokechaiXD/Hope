@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"cortex.local/cortex/internal/autostart"
 	"cortex.local/cortex/internal/config"
 	_ "modernc.org/sqlite"
 )
@@ -39,6 +41,21 @@ func TestInitAndAgentAddCommands(t *testing.T) {
 	}
 	if agentID, ok := loaded.Authenticate(solaToken); !ok || agentID != "sola" {
 		t.Fatalf("new token authenticated as %q, %v", agentID, ok)
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	code = run([]string{"agent", "token", "--data-dir", dataDir, "--id", "mika"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("agent token exit = %d, stderr=%s", code, stderr.String())
+	}
+	issuedToken := outputValue(stdout.String(), "token")
+	loaded, err = config.Load(dataDir)
+	if err != nil {
+		t.Fatalf("reload config: %v", err)
+	}
+	if agentID, ok := loaded.Authenticate(issuedToken); !ok || agentID != "mika" {
+		t.Fatalf("issued token authenticated as %q, %v", agentID, ok)
 	}
 }
 
@@ -119,6 +136,45 @@ func TestUnknownCommandFails(t *testing.T) {
 	if code := run([]string{"unknown"}, &stdout, &stderr); code == 0 {
 		t.Fatalf("unknown command succeeded: stdout=%s", stdout.String())
 	}
+}
+
+func TestServiceInstallCommandUsesConfiguredDataDirectory(t *testing.T) {
+	t.Parallel()
+
+	dataDir := t.TempDir()
+	if _, _, err := config.Initialize(dataDir, "mika", "127.0.0.1:7777"); err != nil {
+		t.Fatalf("initialize Cortex config: %v", err)
+	}
+	controller := &fakeServiceController{}
+	var stdout, stderr bytes.Buffer
+	code := runService([]string{"install", "--data-dir", dataDir}, &stdout, &stderr, controller)
+	if code != 0 {
+		t.Fatalf("service install exit=%d stderr=%s", code, stderr.String())
+	}
+	if controller.installedDataDir != dataDir || !strings.Contains(stdout.String(), "entry=Cortex Memory Hub") {
+		t.Fatalf("data_dir=%q stdout=%s", controller.installedDataDir, stdout.String())
+	}
+}
+
+type fakeServiceController struct {
+	installedDataDir string
+}
+
+func (controller *fakeServiceController) Install(_ context.Context, dataDir string) (autostart.InstallResult, error) {
+	controller.installedDataDir = dataDir
+	return autostart.InstallResult{EntryName: autostart.EntryName, Executable: filepath.Join(dataDir, "bin", "cortex.exe")}, nil
+}
+
+func (controller *fakeServiceController) Start(context.Context, string) (string, error) {
+	return "started", nil
+}
+
+func (controller *fakeServiceController) Status(context.Context) (string, error) {
+	return "status", nil
+}
+
+func (controller *fakeServiceController) Uninstall(context.Context) error {
+	return nil
 }
 
 func outputValue(output, key string) string {

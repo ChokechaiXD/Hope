@@ -51,9 +51,10 @@ func (server *Server) health(writer http.ResponseWriter, _ *http.Request) {
 	writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func (server *Server) capabilities(writer http.ResponseWriter, _ *http.Request) {
+func (server *Server) capabilities(writer http.ResponseWriter, request *http.Request) {
 	writeJSON(writer, http.StatusOK, map[string]any{
 		"version":    "v1",
+		"agent_id":   identityFromRequest(request),
 		"operations": []string{"remember", "recall", "feedback", "review", "history"},
 		"search":     []string{"fts5"},
 		"scopes":     []cortex.Scope{cortex.ScopeGlobal, cortex.ScopeProject, cortex.ScopeDomain, cortex.ScopePrivate},

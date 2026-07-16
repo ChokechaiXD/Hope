@@ -136,6 +136,26 @@ func TestIdempotencyKeysAreScopedToAuthenticatedAgent(t *testing.T) {
 	}
 }
 
+func TestCapabilitiesReportsAuthenticatedAgentIdentity(t *testing.T) {
+	t.Parallel()
+
+	hub, err := cortex.Open(cortex.Config{DatabasePath: filepath.Join(t.TempDir(), "cortex.db")})
+	if err != nil {
+		t.Fatalf("open Cortex: %v", err)
+	}
+	t.Cleanup(func() { _ = hub.Close() })
+	handler := New(hub, StaticAuthenticator{"sora-token": "sora"})
+	response := performRequest(t, handler, http.MethodGet, "/v1/capabilities", "sora-token", "", nil)
+	if response.Code != http.StatusOK {
+		t.Fatalf("capabilities status=%d body=%s", response.Code, response.Body.String())
+	}
+	var capabilities map[string]any
+	decodeResponse(t, response, &capabilities)
+	if capabilities["agent_id"] != "sora" {
+		t.Fatalf("agent_id=%#v, want sora", capabilities["agent_id"])
+	}
+}
+
 func performRequest(t *testing.T, handler http.Handler, method, path, token, idempotencyKey string, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	var encoded []byte

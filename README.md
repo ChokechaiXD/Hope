@@ -16,6 +16,7 @@ the user's control. Agent frameworks are adapters; they never own the database.
 - Append-only audit events
 - Bearer-token identity with SHA-256 hashes at rest
 - Local dashboard with opaque sessions, CSRF protection, and per-memory history
+- User-level Windows autostart with no administrator permission required
 - Embedded Hermes connector installer
 - Read-only Holographic importer; imported facts stay candidates
 
@@ -36,7 +37,8 @@ dashboard and Hermes connector assets.
 ```powershell
 bin\cortex.exe init
 bin\cortex.exe connector sync hermes --home "$env:LOCALAPPDATA\hermes"
-bin\cortex.exe serve
+bin\cortex.exe service install
+bin\cortex.exe service start
 ```
 
 `init` prints the initial administrator token once. Keep it; Cortex stores only
@@ -45,6 +47,12 @@ default listener is `127.0.0.1:7777`.
 
 Open `http://127.0.0.1:7777/`, sign in with an administrator token, and review
 candidate memories from the dashboard.
+
+Issue a fresh dashboard token without opening any connector config:
+
+```powershell
+bin\cortex.exe agent token --id mika
+```
 
 When a new Hermes profile appears, run the same `connector sync hermes` command
 again. Existing valid profile tokens are reused. New profiles receive isolated
@@ -92,4 +100,5 @@ go vet ./...
 ```
 
 See [Architecture](docs/architecture.md) and [v0.1 specification](docs/spec.md)
-for module boundaries and invariants.
+for module boundaries and invariants. See [Operations](docs/operations.md) for
+live status, agent onboarding, upgrades, and rollback.

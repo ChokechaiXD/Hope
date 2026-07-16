@@ -1,0 +1,90 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"io"
+
+	"cortex.local/cortex/internal/autostart"
+	"cortex.local/cortex/internal/config"
+)
+
+type serviceController interface {
+	Install(context.Context, string) (autostart.InstallResult, error)
+	Start(context.Context, string) (string, error)
+	Status(context.Context) (string, error)
+	Uninstall(context.Context) error
+}
+
+func runService(args []string, stdout, stderr io.Writer, controller serviceController) int {
+	if len(args) == 0 {
+		fmt.Fprintln(stderr, "usage: cortex service install|start|status|uninstall")
+		return 2
+	}
+	ctx := context.Background()
+	switch args[0] {
+	case "install":
+		flags := flag.NewFlagSet("service install", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		dataDir := flags.String("data-dir", config.DefaultDataDir(), "Cortex data directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if _, err := config.Load(*dataDir); err != nil {
+			fmt.Fprintf(stderr, "load Cortex config: %v\n", err)
+			return 1
+		}
+		result, err := controller.Install(ctx, *dataDir)
+		if err != nil {
+			fmt.Fprintf(stderr, "install Cortex service: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "entry=%s\nexecutable=%s\n", result.EntryName, result.Executable)
+		return 0
+	case "start":
+		flags := flag.NewFlagSet("service start", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		dataDir := flags.String("data-dir", config.DefaultDataDir(), "Cortex data directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if _, err := config.Load(*dataDir); err != nil {
+			fmt.Fprintf(stderr, "load Cortex config: %v\n", err)
+			return 1
+		}
+		output, err := controller.Start(ctx, *dataDir)
+		if err != nil {
+			fmt.Fprintf(stderr, "start Cortex service: %v\n", err)
+			return 1
+		}
+		fmt.Fprintln(stdout, output)
+		return 0
+	case "status":
+		if len(args) != 1 {
+			fmt.Fprintln(stderr, "usage: cortex service status")
+			return 2
+		}
+		output, err := controller.Status(ctx)
+		if err != nil {
+			fmt.Fprintf(stderr, "query Cortex service: %v\n", err)
+			return 1
+		}
+		fmt.Fprintln(stdout, output)
+		return 0
+	case "uninstall":
+		if len(args) != 1 {
+			fmt.Fprintln(stderr, "usage: cortex service uninstall")
+			return 2
+		}
+		if err := controller.Uninstall(ctx); err != nil {
+			fmt.Fprintf(stderr, "uninstall Cortex service: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "removed=%s\n", autostart.EntryName)
+		return 0
+	default:
+		fmt.Fprintf(stderr, "unknown service command %q\n", args[0])
+		return 2
+	}
+}

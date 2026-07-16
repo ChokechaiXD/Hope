@@ -23,6 +23,7 @@ SQLite WAL + FTS5 + append-only events
 ```text
 cmd/cortex/                      CLI composition and process lifecycle
 connectors/hermes/               embedded, replaceable Hermes adapter
+internal/autostart/              Windows user-level startup adapter
 internal/config/                 local config and hashed agent credentials
 internal/cortex/                 memory domain and deep-module interface
 internal/hermes/                 connector discovery, install, activation
@@ -33,6 +34,8 @@ docs/                            product and architecture contracts
 
 Each operation has its own focused implementation file. `service.go` only
 composes the hub; it does not accumulate endpoint, SQL, and connector logic.
+CLI commands are split by identity, integration, process, and autostart seams;
+`main.go` contains dispatch and usage only.
 
 ## Storage model
 
