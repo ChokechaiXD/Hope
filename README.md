@@ -22,7 +22,8 @@ the user's control. Agent frameworks are adapters; they never own the database.
 - Token-budgeted recall before usage is recorded, so trimmed memories do not
   distort feedback or learning scores
 - User-level Windows autostart with no administrator permission required
-- Start Menu shortcut that starts Cortex only when needed and opens the dashboard
+- Start Menu shortcut that starts Cortex only when needed and signs into the
+  dashboard with a short-lived, one-time local code
 - Embedded Hermes connector installer
 - Read-only Holographic importer; imported facts stay candidates
 
@@ -53,8 +54,11 @@ default listener is `127.0.0.1:7777`.
 
 After the one-time setup, open **Cortex Dashboard** from the Windows Start Menu.
 It reuses the configured loopback port, starts Cortex only when health checks say
-it is down, and opens the browser. Sign in with an administrator token once;
-the browser keeps an opaque local session instead of storing the bearer token.
+it is down, and opens the browser already signed in. The launcher proves its
+identity with a replay-protected HMAC request; Cortex exchanges a 30-second,
+single-use code for an opaque browser session. Agent bearer tokens never enter
+the URL, browser storage, or launcher logs. The manual token form remains an
+emergency fallback.
 
 Daily work is dashboard-only: search and review memories, restart or stop Cortex,
 and press **Discover & connect agents** whenever a new Hermes profile appears.
@@ -93,6 +97,7 @@ automatically. Repeating an unchanged import is idempotent.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/v1/health` | Process health |
+| `POST` | `/v1/dashboard/sessions` | Loopback launcher requests a one-time UI session |
 | `GET` | `/v1/capabilities` | Protocol features |
 | `POST` | `/v1/memories` | Create or revise candidate memory |
 | `POST` | `/v1/recalls` | Search visible reviewed memory |

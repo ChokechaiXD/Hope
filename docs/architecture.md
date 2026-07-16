@@ -31,6 +31,7 @@ internal/hermes/                 connector discovery, install, activation
 internal/httpapi/                HTTP translation and management dashboard
 internal/importer/holographic/   read-only legacy adapter
 internal/launcher/               validated Windows dashboard opener
+internal/localauth/              HMAC launcher proof and one-time UI codes
 docs/                            product and architecture contracts
 ```
 
@@ -70,6 +71,8 @@ than it understands.
 12. Legacy databases are imported read-only and remain untouched.
 13. Recall token budgets are enforced before recall items and usage events are
     persisted; omitted context cannot influence learning scores.
+14. The local launcher never transmits its long-lived key; signed proofs and UI
+    codes expire after 30 seconds and cannot be replayed.
 
 ## Evolution points
 

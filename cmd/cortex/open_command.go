@@ -5,10 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
+	"time"
 
 	"cortex.local/cortex/internal/autostart"
 	"cortex.local/cortex/internal/config"
 	"cortex.local/cortex/internal/launcher"
+	"cortex.local/cortex/internal/localauth"
 )
 
 type serviceStarter interface {
@@ -17,9 +20,12 @@ type serviceStarter interface {
 
 type dashboardOpener func(context.Context, string) error
 
+type dashboardSessionIssuer func(context.Context, string, string) (string, error)
+
 func runOpen(args []string, stdout, stderr io.Writer) int {
 	return runOpenWithDependencies(
-		args, stdout, stderr, autostart.New(), defaultReadinessChecker(), launcher.Open,
+		args, stdout, stderr, autostart.New(), defaultReadinessChecker(),
+		defaultDashboardSessionIssuer, launcher.Open,
 	)
 }
 
@@ -28,6 +34,7 @@ func runOpenWithDependencies(
 	stdout, stderr io.Writer,
 	starter serviceStarter,
 	readiness readinessChecker,
+	issueSession dashboardSessionIssuer,
 	openURL dashboardOpener,
 ) int {
 	flags := flag.NewFlagSet("open", flag.ContinueOnError)
@@ -58,11 +65,22 @@ func runOpenWithDependencies(
 			return 1
 		}
 	}
-	dashboardURL := "http://" + file.Listen + "/"
+	dashboardURL, err := issueSession(ctx, *dataDir, file.Listen)
+	if err != nil {
+		// ponytail: keep the manual token page as an emergency fallback for an older or damaged service.
+		dashboardURL = "http://" + file.Listen + "/"
+		fmt.Fprintf(stderr, "open Cortex dashboard: automatic sign-in unavailable: %v\n", err)
+	}
 	if err := openURL(ctx, dashboardURL); err != nil {
 		fmt.Fprintf(stderr, "open Cortex dashboard: %v\n", err)
 		return 1
 	}
-	fmt.Fprintf(stdout, "opened=%s\n", dashboardURL)
+	// Do not persist the one-time dashboard code in console or launcher logs.
+	fmt.Fprintf(stdout, "opened=http://%s/\n", file.Listen)
 	return 0
+}
+
+func defaultDashboardSessionIssuer(ctx context.Context, dataDir, address string) (string, error) {
+	client := &http.Client{Timeout: 2 * time.Second}
+	return localauth.RequestDashboardURL(ctx, client, dataDir, "http://"+address)
 }

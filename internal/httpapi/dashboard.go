@@ -253,10 +253,19 @@ func (server *Server) login(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "invalid token", http.StatusUnauthorized)
 		return
 	}
+	if err := server.establishDashboardSession(writer, request, agentID); err != nil {
+		http.Error(writer, "create session", http.StatusInternalServerError)
+	}
+}
+
+func (server *Server) establishDashboardSession(
+	writer http.ResponseWriter,
+	request *http.Request,
+	agentID string,
+) error {
 	sessionID, session, err := server.sessions.create(agentID)
 	if err != nil {
-		http.Error(writer, "create session", http.StatusInternalServerError)
-		return
+		return err
 	}
 	http.SetCookie(writer, &http.Cookie{
 		Name:     dashboardCookieName,
@@ -268,6 +277,7 @@ func (server *Server) login(writer http.ResponseWriter, request *http.Request) {
 		MaxAge:   int(dashboardSessionTTL / time.Second),
 	})
 	http.Redirect(writer, request, "/", http.StatusSeeOther)
+	return nil
 }
 
 func (server *Server) logout(writer http.ResponseWriter, request *http.Request) {

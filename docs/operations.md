@@ -7,6 +7,7 @@
 ├── bin\cortex.exe
 ├── config.json
 ├── cortex.db
+├── launcher.key
 └── backups\
 ```
 
@@ -19,7 +20,8 @@ administrator permission is not required.
 
 Open **Cortex Dashboard** from the Windows Start Menu. The shortcut checks
 `/v1/health`, starts the installed service only when needed, and opens the
-configured loopback URL. Use the dashboard for memory search/review,
+configured loopback URL with a 30-second, one-time local session. It does not
+place an agent bearer token in the browser or command output. Use the dashboard for memory search/review,
 Hermes-agent discovery, restart, and graceful stop.
 
 The commands below remain operator diagnostics, not daily requirements:

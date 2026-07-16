@@ -9,6 +9,7 @@ import (
 
 	"cortex.local/cortex/internal/controlcenter"
 	"cortex.local/cortex/internal/cortex"
+	"cortex.local/cortex/internal/localauth"
 )
 
 type Server struct {
@@ -16,6 +17,7 @@ type Server struct {
 	auth     Authenticator
 	sessions *dashboardSessions
 	control  runtimeControl
+	launcher *localauth.Broker
 }
 
 func New(hub *cortex.Hub, auth Authenticator) http.Handler {
@@ -29,13 +31,26 @@ type runtimeControl interface {
 }
 
 func NewWithControl(hub *cortex.Hub, auth Authenticator, control runtimeControl) http.Handler {
-	server := &Server{hub: hub, auth: auth, sessions: newDashboardSessions(), control: control}
+	return NewWithControlAndLauncher(hub, auth, control, nil)
+}
+
+func NewWithControlAndLauncher(
+	hub *cortex.Hub,
+	auth Authenticator,
+	control runtimeControl,
+	launcher *localauth.Broker,
+) http.Handler {
+	server := &Server{
+		hub: hub, auth: auth, sessions: newDashboardSessions(), control: control, launcher: launcher,
+	}
 	mux := http.NewServeMux()
 	staticFiles, _ := fs.Sub(dashboardAssets, "static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFiles))))
 	mux.HandleFunc("GET /", server.dashboard)
 	mux.HandleFunc("POST /login", server.login)
 	mux.HandleFunc("POST /logout", server.logout)
+	mux.HandleFunc("POST /v1/dashboard/sessions", server.issueDashboardSession)
+	mux.HandleFunc("GET /ui/session", server.consumeDashboardSession)
 	mux.HandleFunc("POST /ui/system/action", server.systemAction)
 	mux.HandleFunc("POST /ui/hermes/sync", server.hermesSync)
 	mux.HandleFunc("GET /ui/memories/{memoryID}", server.dashboardDetail)

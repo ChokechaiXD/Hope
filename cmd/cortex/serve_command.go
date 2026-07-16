@@ -17,6 +17,7 @@ import (
 	"cortex.local/cortex/internal/controlcenter"
 	"cortex.local/cortex/internal/cortex"
 	"cortex.local/cortex/internal/httpapi"
+	"cortex.local/cortex/internal/localauth"
 )
 
 func runServe(args []string, stdout, stderr io.Writer) int {
@@ -87,8 +88,22 @@ func serveCortexCycle(
 		_ = hub.Close()
 		return controlcenter.ActionStop, fmt.Errorf("initialize authenticator: %w", err)
 	}
+	if len(file.AdminAgents) == 0 {
+		_ = hub.Close()
+		return controlcenter.ActionStop, fmt.Errorf("initialize dashboard launcher: no administrator is configured")
+	}
+	launcherKey, err := localauth.Ensure(dataDir)
+	if err != nil {
+		_ = hub.Close()
+		return controlcenter.ActionStop, fmt.Errorf("initialize dashboard launcher: %w", err)
+	}
+	dashboardLauncher, err := localauth.NewBroker(launcherKey, file.AdminAgents[0])
+	if err != nil {
+		_ = hub.Close()
+		return controlcenter.ActionStop, fmt.Errorf("initialize dashboard launcher: %w", err)
+	}
 	server := &http.Server{
-		Addr: address, Handler: httpapi.NewWithControl(hub, authenticator, runtime),
+		Addr: address, Handler: httpapi.NewWithControlAndLauncher(hub, authenticator, runtime, dashboardLauncher),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second,
 		WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 1 << 20,
 	}

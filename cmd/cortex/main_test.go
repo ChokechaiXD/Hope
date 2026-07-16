@@ -270,12 +270,18 @@ func TestOpenDashboardStartsOnlyWhenNeededAndOpensConfiguredLoopbackURL(t *testi
 		opened = rawURL
 		return nil
 	}
+	issueSession := func(context.Context, string, string) (string, error) {
+		return "http://127.0.0.1:7777/ui/session?code=once", nil
+	}
 	var stdout, stderr bytes.Buffer
 	code := runOpenWithDependencies(
-		[]string{"--data-dir", dataDir}, &stdout, &stderr, controller, checker, openURL,
+		[]string{"--data-dir", dataDir}, &stdout, &stderr, controller, checker, issueSession, openURL,
 	)
-	if code != 0 || controller.startedDataDir != dataDir || opened != "http://127.0.0.1:7777/" {
+	if code != 0 || controller.startedDataDir != dataDir || opened != "http://127.0.0.1:7777/ui/session?code=once" {
 		t.Fatalf("open exit=%d started=%q opened=%q stdout=%s stderr=%s", code, controller.startedDataDir, opened, stdout.String(), stderr.String())
+	}
+	if strings.Contains(stdout.String(), "code=once") {
+		t.Fatalf("open output leaked one-time dashboard code: %s", stdout.String())
 	}
 }
 
@@ -290,9 +296,12 @@ func TestOpenDashboardDoesNotSpawnDuplicateOrAcceptTrailingArguments(t *testing.
 	checker := readinessChecker{probe: func(context.Context, string) error { return nil }}
 	opened := 0
 	openURL := func(context.Context, string) error { opened++; return nil }
+	issueSession := func(context.Context, string, string) (string, error) {
+		return "http://127.0.0.1:7777/ui/session?code=once", nil
+	}
 	var stdout, stderr bytes.Buffer
 	code := runOpenWithDependencies(
-		[]string{"--data-dir", dataDir}, &stdout, &stderr, controller, checker, openURL,
+		[]string{"--data-dir", dataDir}, &stdout, &stderr, controller, checker, issueSession, openURL,
 	)
 	if code != 0 || controller.startedDataDir != "" || opened != 1 {
 		t.Fatalf("healthy open exit=%d started=%q opened=%d stderr=%s", code, controller.startedDataDir, opened, stderr.String())
@@ -302,7 +311,7 @@ func TestOpenDashboardDoesNotSpawnDuplicateOrAcceptTrailingArguments(t *testing.
 	stderr.Reset()
 	opened = 0
 	code = runOpenWithDependencies(
-		[]string{"--data-dir", dataDir, "ignored"}, &stdout, &stderr, controller, checker, openURL,
+		[]string{"--data-dir", dataDir, "ignored"}, &stdout, &stderr, controller, checker, issueSession, openURL,
 	)
 	if code != 2 || opened != 0 {
 		t.Fatalf("trailing argument exit=%d opened=%d stderr=%s", code, opened, stderr.String())
