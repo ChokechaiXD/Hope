@@ -39,7 +39,7 @@ func runOpenWithDependencies(
 ) int {
 	flags := flag.NewFlagSet("open", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -49,7 +49,7 @@ func runOpenWithDependencies(
 	}
 	file, err := config.Load(*dataDir)
 	if err != nil {
-		fmt.Fprintf(stderr, "open HOPE Mem dashboard: %v\n", err)
+		fmt.Fprintf(stderr, "open Hope HUB dashboard: %v\n", err)
 		return 1
 	}
 	ctx := context.Background()
@@ -57,11 +57,11 @@ func runOpenWithDependencies(
 		// ponytail: the loopback listener remains the single-instance lock;
 		// a second launch can exit on bind without another resident process.
 		if _, err := starter.Start(ctx, *dataDir); err != nil {
-			fmt.Fprintf(stderr, "open HOPE Mem dashboard: start service: %v\n", err)
+			fmt.Fprintf(stderr, "open Hope HUB dashboard: start service: %v\n", err)
 			return 1
 		}
 		if err := readiness.wait(ctx, file.Listen); err != nil {
-			fmt.Fprintf(stderr, "open HOPE Mem dashboard: health check failed: %v\n", err)
+			fmt.Fprintf(stderr, "open Hope HUB dashboard: health check failed: %v\n", err)
 			return 1
 		}
 	}
@@ -69,10 +69,10 @@ func runOpenWithDependencies(
 	if err != nil {
 		// ponytail: keep the manual token page as an emergency fallback for an older or damaged service.
 		dashboardURL = "http://" + file.Listen + "/"
-		fmt.Fprintf(stderr, "open HOPE Mem dashboard: automatic sign-in unavailable: %v\n", err)
+		fmt.Fprintf(stderr, "open Hope HUB dashboard: automatic sign-in unavailable: %v\n", err)
 	}
 	if err := openURL(ctx, dashboardURL); err != nil {
-		fmt.Fprintf(stderr, "open HOPE Mem dashboard: %v\n", err)
+		fmt.Fprintf(stderr, "open Hope HUB dashboard: %v\n", err)
 		return 1
 	}
 	// Do not persist the one-time dashboard code in console or launcher logs.

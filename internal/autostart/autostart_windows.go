@@ -18,10 +18,10 @@ import (
 
 const (
 	// Keep the existing registry value name so upgrades never create a second startup entry.
-	EntryName    = "Cortex Memory Hub"
-	ShortcutName = "HOPE Dashboard.lnk"
+	EntryName    = "Hope HUB"
+	ShortcutName = "Hope HUB Dashboard.lnk"
 	RunKey       = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-	shortcutTemp = "HOPE Dashboard.new.lnk"
+	shortcutTemp = "Hope HUB Dashboard.new.lnk"
 )
 
 type InstallResult struct {
@@ -57,7 +57,7 @@ func (controller *Controller) Install(ctx context.Context, dataDir string) (Inst
 	}
 	source, err := controller.executable()
 	if err != nil {
-		return InstallResult{}, fmt.Errorf("resolve Cortex executable: %w", err)
+		return InstallResult{}, fmt.Errorf("resolve Hope HUB executable: %w", err)
 	}
 	destination := filepath.Join(dataDir, "bin", "cortex.exe")
 	if err := installExecutable(source, destination); err != nil {
@@ -68,13 +68,13 @@ func (controller *Controller) Install(ctx context.Context, dataDir string) (Inst
 		"ADD", RunKey, "/V", EntryName, "/T", "REG_SZ", "/D", action, "/F",
 	)
 	if err != nil {
-		return InstallResult{}, commandError("register Cortex autostart", output, err)
+		return InstallResult{}, commandError("register Hope HUB autostart", output, err)
 	}
 	output, err = controller.run(ctx, "powershell.exe",
 		"-NoProfile", "-NonInteractive", "-Command", shortcutInstallScript(destination, dataDir),
 	)
 	if err != nil {
-		return InstallResult{}, commandError("install Cortex dashboard shortcut", output, err)
+		return InstallResult{}, commandError("install Hope HUB dashboard shortcut", output, err)
 	}
 	return InstallResult{EntryName: EntryName, Executable: destination, Shortcut: ShortcutName}, nil
 }
@@ -86,15 +86,15 @@ func (controller *Controller) Start(_ context.Context, dataDir string) (string, 
 	}
 	executable := filepath.Join(dataDir, "bin", "cortex.exe")
 	if err := controller.start(executable, "serve", "--data-dir", dataDir); err != nil {
-		return "", fmt.Errorf("start Cortex process: %w", err)
+		return "", fmt.Errorf("start Hope HUB process: %w", err)
 	}
-	return "started Cortex from " + executable, nil
+	return "started Hope HUB from " + executable, nil
 }
 
 func (controller *Controller) Status(ctx context.Context) (string, error) {
 	output, err := controller.run(ctx, "reg.exe", "QUERY", RunKey, "/V", EntryName)
 	if err != nil {
-		return "", commandError("query Cortex autostart", output, err)
+		return "", commandError("query Hope HUB autostart", output, err)
 	}
 	return "autostart=registered\nregistry=" + strings.TrimSpace(string(output)), nil
 }
@@ -102,13 +102,13 @@ func (controller *Controller) Status(ctx context.Context) (string, error) {
 func (controller *Controller) Uninstall(ctx context.Context) error {
 	registryOutput, registryErr := controller.run(ctx, "reg.exe", "DELETE", RunKey, "/V", EntryName, "/F")
 	if registryErr != nil {
-		registryErr = commandError("remove Cortex autostart", registryOutput, registryErr)
+		registryErr = commandError("remove Hope HUB autostart", registryOutput, registryErr)
 	}
 	shortcutOutput, shortcutErr := controller.run(ctx, "powershell.exe",
 		"-NoProfile", "-NonInteractive", "-Command", shortcutRemoveScript(),
 	)
 	if shortcutErr != nil {
-		shortcutErr = commandError("remove Cortex dashboard shortcut", shortcutOutput, shortcutErr)
+		shortcutErr = commandError("remove Hope HUB dashboard shortcut", shortcutOutput, shortcutErr)
 	}
 	return errors.Join(registryErr, shortcutErr)
 }
@@ -121,7 +121,7 @@ func shortcutInstallScript(executable, dataDir string) string {
 	arguments := "-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand " + encodePowerShell(dashboardScript)
 	return strings.Join([]string{
 		"$programs=[Environment]::GetFolderPath('Programs')",
-		"$legacy=Join-Path $programs 'Cortex Dashboard.lnk'",
+		"$legacy=Join-Path $programs 'Hope HUB Dashboard.lnk'",
 		"Remove-Item -LiteralPath $legacy -Force -ErrorAction SilentlyContinue",
 		"$link=Join-Path $programs " + powerShellLiteral(ShortcutName),
 		"$temp=Join-Path $programs " + powerShellLiteral(shortcutTemp),
@@ -130,7 +130,7 @@ func shortcutInstallScript(executable, dataDir string) string {
 		"$shortcut.TargetPath=(Get-Command powershell.exe).Source",
 		"$shortcut.Arguments=" + powerShellLiteral(arguments),
 		"$shortcut.WorkingDirectory=" + powerShellLiteral(dataDir),
-		"$shortcut.Description='Open HOPE Mem'",
+		"$shortcut.Description='Open Hope HUB'",
 		"$shortcut.IconLocation=" + powerShellLiteral(executable+",0"),
 		"$shortcut.WindowStyle=7",
 		"$shortcut.Save()",
@@ -143,7 +143,7 @@ func shortcutRemoveScript() string {
 		"$programs=[Environment]::GetFolderPath('Programs')",
 		"$link=Join-Path $programs " + powerShellLiteral(ShortcutName),
 		"Remove-Item -LiteralPath $link -Force -ErrorAction SilentlyContinue",
-		"$legacy=Join-Path $programs 'Cortex Dashboard.lnk'",
+		"$legacy=Join-Path $programs 'Hope HUB Dashboard.lnk'",
 		"Remove-Item -LiteralPath $legacy -Force -ErrorAction SilentlyContinue",
 	}, ";")
 }
@@ -180,14 +180,14 @@ func startDetached(name string, args ...string) error {
 
 func cleanDataDir(dataDir string) (string, error) {
 	if strings.TrimSpace(dataDir) == "" {
-		return "", fmt.Errorf("Cortex data directory is required")
+		return "", fmt.Errorf("Hope HUB data directory is required")
 	}
 	abs, err := filepath.Abs(dataDir)
 	if err != nil {
-		return "", fmt.Errorf("resolve Cortex data directory: %w", err)
+		return "", fmt.Errorf("resolve Hope HUB data directory: %w", err)
 	}
 	if strings.ContainsRune(abs, '"') {
-		return "", fmt.Errorf("Cortex data directory cannot contain a quote")
+		return "", fmt.Errorf("Hope HUB data directory cannot contain a quote")
 	}
 	return filepath.Clean(abs), nil
 }

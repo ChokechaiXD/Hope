@@ -64,10 +64,11 @@ func insertCandidate(ctx context.Context, tx *sql.Tx, input candidateInput) (Mem
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO memories(
     id, kind, scope, scope_key, memory_key, lifecycle,
-    truth_score, utility_score, created_by, current_revision, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+    truth_score, utility_score, created_by, current_revision, created_at, updated_at, embedding
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
 		memoryID, input.kind, input.scope, strings.TrimSpace(input.scopeKey), strings.TrimSpace(input.memoryKey),
 		LifecycleCandidate, clamp(input.truthScore), clamp(input.utilityScore), input.agentID, now, now,
+		encodeVector(embedText(input.title+"\n"+input.content+"\n"+strings.Join(input.tags, " "))),
 	)
 	if err != nil {
 		return Memory{}, false, fmt.Errorf("insert memory: %w", err)
@@ -185,8 +186,9 @@ INSERT INTO memory_revisions(
 	}
 	if _, err := tx.ExecContext(ctx, `
 UPDATE memories
-SET kind = ?, lifecycle = ?, truth_score = ?, utility_score = ?, current_revision = ?, updated_at = ?
-WHERE id = ?`, input.kind, LifecycleCandidate, clamp(input.truthScore), clamp(input.utilityScore), revision, now, existing.ID); err != nil {
+SET kind = ?, lifecycle = ?, truth_score = ?, utility_score = ?, current_revision = ?, updated_at = ?, embedding = ?
+WHERE id = ?`, input.kind, LifecycleCandidate, clamp(input.truthScore), clamp(input.utilityScore), revision, now,
+		encodeVector(embedText(title+"\n"+content+"\n"+strings.Join(input.tags, " "))), existing.ID); err != nil {
 		return Memory{}, false, fmt.Errorf("activate revised memory: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, "DELETE FROM memory_fts WHERE memory_id = ?", existing.ID); err != nil {

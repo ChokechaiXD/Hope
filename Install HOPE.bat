@@ -1,15 +1,15 @@
 @echo off
 setlocal
-title Install HOPE Mem
+title Install Hope HUB
 
 set "SOURCE_EXE=%~dp0bin\cortex.exe"
-set "DATA_DIR=%LOCALAPPDATA%\Cortex"
+set "DATA_DIR=%LOCALAPPDATA%\HopeHUB"
 set "HERMES_HOME=%LOCALAPPDATA%\hermes"
 
 if not exist "%SOURCE_EXE%" (
-  echo HOPE Mem executable was not found at:
+  echo Hope HUB executable was not found at:
   echo %SOURCE_EXE%
-  echo Build or download HOPE Mem first, then run this installer again.
+  echo Build or download Hope HUB first, then run this installer again.
   pause
   exit /b 1
 )
@@ -37,6 +37,6 @@ exit /b 0
 
 :failed
 echo.
-echo HOPE Mem installation did not finish. No external service was removed.
+echo Hope HUB installation did not finish. No external service was removed.
 pause
 exit /b 1

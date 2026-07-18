@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	EntryName    = "Cortex Memory Hub"
-	ShortcutName = "Cortex Dashboard.lnk"
+	EntryName    = "Hope HUB"
+	ShortcutName = "Hope HUB Dashboard.lnk"
 )
 
 type InstallResult struct {
@@ -25,17 +25,17 @@ func New() *Controller {
 }
 
 func (*Controller) Install(context.Context, string) (InstallResult, error) {
-	return InstallResult{}, fmt.Errorf("Cortex autostart is currently supported on Windows only")
+	return InstallResult{}, fmt.Errorf("Hope HUB autostart is currently supported on Windows only")
 }
 
 func (*Controller) Start(context.Context, string) (string, error) {
-	return "", fmt.Errorf("Cortex autostart is currently supported on Windows only")
+	return "", fmt.Errorf("Hope HUB autostart is currently supported on Windows only")
 }
 
 func (*Controller) Status(context.Context) (string, error) {
-	return "", fmt.Errorf("Cortex autostart is currently supported on Windows only")
+	return "", fmt.Errorf("Hope HUB autostart is currently supported on Windows only")
 }
 
 func (*Controller) Uninstall(context.Context) error {
-	return fmt.Errorf("Cortex autostart is currently supported on Windows only")
+	return fmt.Errorf("Hope HUB autostart is currently supported on Windows only")
 }

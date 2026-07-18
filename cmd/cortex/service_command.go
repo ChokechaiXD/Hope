@@ -36,7 +36,7 @@ func runServiceWithReadiness(
 	case "install":
 		flags := flag.NewFlagSet("service install", flag.ContinueOnError)
 		flags.SetOutput(stderr)
-		dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+		dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 		if err := flags.Parse(args[1:]); err != nil {
 			return 2
 		}
@@ -45,12 +45,12 @@ func runServiceWithReadiness(
 			return 2
 		}
 		if _, err := config.Load(*dataDir); err != nil {
-			fmt.Fprintf(stderr, "load HOPE Mem config: %v\n", err)
+			fmt.Fprintf(stderr, "load Hope HUB config: %v\n", err)
 			return 1
 		}
 		result, err := controller.Install(ctx, *dataDir)
 		if err != nil {
-			fmt.Fprintf(stderr, "install HOPE Mem service: %v\n", err)
+			fmt.Fprintf(stderr, "install Hope HUB service: %v\n", err)
 			return 1
 		}
 		fmt.Fprintf(stdout, "entry=%s\nexecutable=%s\nshortcut=%s\n", result.EntryName, result.Executable, result.Shortcut)
@@ -58,7 +58,7 @@ func runServiceWithReadiness(
 	case "start":
 		flags := flag.NewFlagSet("service start", flag.ContinueOnError)
 		flags.SetOutput(stderr)
-		dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+		dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 		if err := flags.Parse(args[1:]); err != nil {
 			return 2
 		}
@@ -68,20 +68,20 @@ func runServiceWithReadiness(
 		}
 		file, err := config.Load(*dataDir)
 		if err != nil {
-			fmt.Fprintf(stderr, "load HOPE Mem config: %v\n", err)
+			fmt.Fprintf(stderr, "load Hope HUB config: %v\n", err)
 			return 1
 		}
 		if readiness.probe(ctx, file.Listen) == nil {
-			fmt.Fprintf(stdout, "HOPE Mem already healthy at http://%s\n", file.Listen)
+			fmt.Fprintf(stdout, "Hope HUB already healthy at http://%s\n", file.Listen)
 			return 0
 		}
 		output, err := controller.Start(ctx, *dataDir)
 		if err != nil {
-			fmt.Fprintf(stderr, "start HOPE Mem service: %v\n", err)
+			fmt.Fprintf(stderr, "start Hope HUB service: %v\n", err)
 			return 1
 		}
 		if err := readiness.wait(ctx, file.Listen); err != nil {
-			fmt.Fprintf(stderr, "start HOPE Mem service: health check failed: %v\n", err)
+			fmt.Fprintf(stderr, "start Hope HUB service: health check failed: %v\n", err)
 			return 1
 		}
 		fmt.Fprintln(stdout, output)
@@ -93,7 +93,7 @@ func runServiceWithReadiness(
 		}
 		output, err := controller.Status(ctx)
 		if err != nil {
-			fmt.Fprintf(stderr, "query HOPE Mem service: %v\n", err)
+			fmt.Fprintf(stderr, "query Hope HUB service: %v\n", err)
 			return 1
 		}
 		fmt.Fprintln(stdout, output)
@@ -104,7 +104,7 @@ func runServiceWithReadiness(
 			return 2
 		}
 		if err := controller.Uninstall(ctx); err != nil {
-			fmt.Fprintf(stderr, "uninstall HOPE Mem service: %v\n", err)
+			fmt.Fprintf(stderr, "uninstall Hope HUB service: %v\n", err)
 			return 1
 		}
 		fmt.Fprintf(stdout, "removed=%s\n", autostart.EntryName)

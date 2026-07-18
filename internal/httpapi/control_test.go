@@ -82,7 +82,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	dashboard := httptest.NewRecorder()
 	handler.ServeHTTP(dashboard, dashboardRequest)
 	body := dashboard.Body.String()
-	for _, expected := range []string{"Memory Kernel พร้อมใช้งาน", "กำลังทำงานในเครื่อง", "127.0.0.1:7777", "PID 4242", "เริ่ม HOPE Mem ใหม่", "ปิด HOPE Mem", "ค้นหาและเชื่อมเอเจนต์"} {
+	for _, expected := range []string{"Memory Kernel พร้อมใช้งาน", "กำลังทำงานในเครื่อง", "127.0.0.1:7777", "PID 4242", "เริ่ม Hope HUB ใหม่", "ปิด Hope HUB", "ค้นหาและเชื่อมเอเจนต์"} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("dashboard omitted %q: %s", expected, body)
 		}
@@ -117,7 +117,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	restartRequest.AddCookie(cookies[0])
 	restart := httptest.NewRecorder()
 	handler.ServeHTTP(restart, restartRequest)
-	if restart.Code != http.StatusAccepted || !strings.Contains(restart.Body.String(), "กำลังเริ่ม HOPE Mem ใหม่") ||
+	if restart.Code != http.StatusAccepted || !strings.Contains(restart.Body.String(), "กำลังเริ่ม Hope HUB ใหม่") ||
 		len(control.requested) != 1 || control.requested[0] != controlcenter.ActionRestart {
 		t.Fatalf("restart status=%d body=%s actions=%#v", restart.Code, restart.Body.String(), control.requested)
 	}
@@ -138,7 +138,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	confirmedRequest.AddCookie(cookies[0])
 	confirmed := httptest.NewRecorder()
 	handler.ServeHTTP(confirmed, confirmedRequest)
-	if confirmed.Code != http.StatusAccepted || !strings.Contains(confirmed.Body.String(), "กำลังปิด HOPE Mem") ||
+	if confirmed.Code != http.StatusAccepted || !strings.Contains(confirmed.Body.String(), "กำลังปิด Hope HUB") ||
 		len(control.requested) != 2 || control.requested[1] != controlcenter.ActionStop {
 		t.Fatalf("confirmed stop status=%d body=%s actions=%#v", confirmed.Code, confirmed.Body.String(), control.requested)
 	}

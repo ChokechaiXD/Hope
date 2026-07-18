@@ -11,7 +11,7 @@ import (
 func runInit(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 	admin := flags.String("admin", "mika", "initial administrator agent id")
 	listen := flags.String("listen", "127.0.0.1:7777", "HTTP listen address")
 	if err := flags.Parse(args); err != nil {
@@ -23,7 +23,7 @@ func runInit(args []string, stdout, stderr io.Writer) int {
 	}
 	_, token, err := config.Initialize(*dataDir, *admin, *listen)
 	if err != nil {
-		fmt.Fprintf(stderr, "initialize HOPE Mem: %v\n", err)
+		fmt.Fprintf(stderr, "initialize Hope HUB: %v\n", err)
 		return 1
 	}
 	fmt.Fprintf(stdout, "data_dir=%s\nagent=%s\ntoken=%s\n", *dataDir, *admin, token)
@@ -37,7 +37,7 @@ func runAgent(args []string, stdout, stderr io.Writer) int {
 	}
 	flags := flag.NewFlagSet("agent "+args[0], flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 	agentID := flags.String("id", "", "agent id")
 	admin := flags.Bool("admin", false, "grant review and governance permission")
 	if err := flags.Parse(args[1:]); err != nil {
@@ -77,7 +77,7 @@ func runDashboard(args []string, stdout, stderr io.Writer) int {
 	}
 	flags := flag.NewFlagSet("dashboard pin", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 	value := flags.String("value", "", "4 to 8 digit dashboard PIN")
 	off := flags.Bool("off", false, "disable the dashboard PIN for loopback access")
 	if err := flags.Parse(args[1:]); err != nil {

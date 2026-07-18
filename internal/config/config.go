@@ -19,8 +19,8 @@ import (
 
 const (
 	FileName         = "config.json"
-	DatabaseName     = "cortex.db"
-	HopeDatabaseName = "hope.db"
+	DatabaseName     = "hope_mem.db"
+	HopeDatabaseName = "hope_skill.db"
 	fileVersion      = 1
 )
 
@@ -249,13 +249,25 @@ func HopeSkillsDir(dataDir string) string {
 
 func DefaultDataDir() string {
 	if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
-		return filepath.Join(localAppData, "Cortex")
+		// Rebrand: HOPE Mem -> Hope HUB. Keep using an existing legacy
+		// "Cortex" directory so an in-place upgrade does not lose data;
+		// new installs get the "HopeHUB" directory.
+		legacy := filepath.Join(localAppData, "Cortex")
+		if dirExists(legacy) {
+			return legacy
+		}
+		return filepath.Join(localAppData, "HopeHUB")
 	}
 	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return "Cortex"
+		return "HopeHUB"
 	}
-	return filepath.Join(configDir, "Cortex")
+	return filepath.Join(configDir, "HopeHUB")
+}
+
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }
 
 func (config File) validate() error {

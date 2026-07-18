@@ -19,7 +19,7 @@ func runImport(args []string, stdout, stderr io.Writer) int {
 	}
 	flags := flag.NewFlagSet("import holographic", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 	databasePath := flags.String("database", "", "Holographic memory_store.db path")
 	agentID := flags.String("agent", "", "agent that owned the legacy database")
 	project := flags.String("project", "", "project scope for legacy project facts")
@@ -37,7 +37,7 @@ func runImport(args []string, stdout, stderr io.Writer) int {
 	}
 	hub, err := cortex.Open(cortex.Config{DatabasePath: config.DatabasePath(*dataDir), AdminAgents: file.AdminAgents})
 	if err != nil {
-		fmt.Fprintf(stderr, "open HOPE Mem: %v\n", err)
+		fmt.Fprintf(stderr, "open Hope HUB: %v\n", err)
 		return 1
 	}
 	defer hub.Close()
@@ -60,8 +60,8 @@ func runConnector(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("connector sync hermes", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	hermesHome := flags.String("home", "", "root Hermes home")
-	dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
-	serverURL := flags.String("url", "http://127.0.0.1:7777", "HOPE Mem server URL")
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
+	serverURL := flags.String("url", "http://127.0.0.1:7777", "Hope HUB server URL")
 	rootAgent := flags.String("root-agent", "mika", "agent id for the root Hermes profile")
 	activate := flags.Bool("activate", true, "set memory.provider to cortex in every profile")
 	if err := flags.Parse(args[2:]); err != nil {

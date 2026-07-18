@@ -14,7 +14,7 @@ SELECT m.id, m.kind, m.scope, m.scope_key, m.memory_key, m.lifecycle,
        r.title, r.content, r.tags_json,
        m.truth_score, m.utility_score, m.created_by,
        r.session_id, r.source_ref, m.current_revision,
-       m.created_at, m.updated_at
+       m.created_at, m.updated_at, m.embedding
 FROM memories m
 JOIN memory_revisions r
   ON r.memory_id = m.id AND r.revision = m.current_revision
@@ -31,12 +31,13 @@ type queryRower interface {
 func scanMemory(row rowScanner) (Memory, error) {
 	var memory Memory
 	var kind, scope, lifecycle, tagsJSON, createdAt, updatedAt string
+	var embeddingBlob []byte
 	err := row.Scan(
 		&memory.ID, &kind, &scope, &memory.ScopeKey, &memory.MemoryKey, &lifecycle,
 		&memory.Title, &memory.Content, &tagsJSON,
 		&memory.TruthScore, &memory.UtilityScore, &memory.CreatedBy,
 		&memory.SessionID, &memory.SourceRef, &memory.Revision,
-		&createdAt, &updatedAt,
+		&createdAt, &updatedAt, &embeddingBlob,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Memory{}, ErrNotFound
@@ -49,6 +50,9 @@ func scanMemory(row rowScanner) (Memory, error) {
 	memory.Lifecycle = Lifecycle(lifecycle)
 	if err := json.Unmarshal([]byte(tagsJSON), &memory.Tags); err != nil {
 		return Memory{}, fmt.Errorf("decode tags: %w", err)
+	}
+	if vec := decodeVector(embeddingBlob); vec != nil {
+		memory.Embedding = vec
 	}
 	memory.CreatedAt, err = time.Parse(time.RFC3339Nano, createdAt)
 	if err != nil {

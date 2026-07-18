@@ -27,8 +27,12 @@ CREATE TABLE IF NOT EXISTS memories (
     created_by TEXT NOT NULL,
     current_revision INTEGER NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    embedding BLOB NOT NULL DEFAULT ''
 );
+
+CREATE INDEX IF NOT EXISTS memories_embedded_idx
+ON memories(lifecycle, length(embedding) > 0);
 
 CREATE INDEX IF NOT EXISTS memories_scope_idx
 ON memories(scope, scope_key, lifecycle);
@@ -166,7 +170,14 @@ CREATE INDEX IF NOT EXISTS advisor_runs_created_idx
 ON advisor_runs(created_at DESC);
 `
 
-var schemaMigrations = []string{schemaV1, schemaV2, schemaV3}
+const schemaV4 = `
+ALTER TABLE memories ADD COLUMN embedding BLOB NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS memories_embedded_idx
+ON memories(lifecycle, length(embedding) > 0);
+`
+
+var schemaMigrations = []string{schemaV1, schemaV2, schemaV3, schemaV4}
 
 func openDatabase(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)

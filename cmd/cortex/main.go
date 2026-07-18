@@ -36,6 +36,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runConnector(args[1:], stdout, stderr)
 	case "import":
 		return runImport(args[1:], stdout, stderr)
+	case "embed-backfill":
+		return runEmbedBackfill(args[1:], stdout, stderr)
 	case "version":
 		fmt.Fprintln(stdout, version)
 		return 0
@@ -50,7 +52,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func printUsage(writer io.Writer) {
-	fmt.Fprintln(writer, `HOPE Mem - local shared memory for agents
+	fmt.Fprintln(writer, `Hope HUB - local shared memory for agents
 
 Usage:
   cortex init [--data-dir DIR] [--admin AGENT] [--listen ADDRESS]
@@ -59,6 +61,7 @@ Usage:
   cortex dashboard pin --value PIN|--off [--data-dir DIR]
   cortex connector sync hermes --home HERMES_HOME [--data-dir DIR]
   cortex import holographic --database MEMORY_STORE_DB --agent AGENT [--project PROJECT]
+  cortex embed-backfill [--data-dir DIR] [--limit N]
   cortex serve [--data-dir DIR] [--listen ADDRESS]
   cortex open [--data-dir DIR]
   cortex service install [--data-dir DIR]

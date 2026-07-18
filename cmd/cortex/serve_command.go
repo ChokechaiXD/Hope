@@ -25,7 +25,7 @@ import (
 func runServe(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	dataDir := flags.String("data-dir", config.DefaultDataDir(), "HOPE Mem data directory")
+	dataDir := flags.String("data-dir", config.DefaultDataDir(), "Hope HUB data directory")
 	listen := flags.String("listen", "", "override configured HTTP listen address")
 	if err := flags.Parse(args); err != nil {
 		return 2
@@ -44,7 +44,7 @@ func runServe(args []string, stdout, stderr io.Writer) int {
 		address = *listen
 	}
 	if err := config.ValidateListen(address); err != nil {
-		fmt.Fprintf(stderr, "serve Cortex: %v\n", err)
+		fmt.Fprintf(stderr, "serve Hope HUB: %v\n", err)
 		return 1
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -53,7 +53,7 @@ func runServe(args []string, stdout, stderr io.Writer) int {
 	if err := runServeControlLoop(func() (controlcenter.Action, error) {
 		return serveCortexCycle(ctx, address, *dataDir, runtime, stdout)
 	}); err != nil {
-		fmt.Fprintf(stderr, "serve Cortex: %v\n", err)
+		fmt.Fprintf(stderr, "serve Hope HUB: %v\n", err)
 		return 1
 	}
 	return 0
@@ -83,12 +83,12 @@ func serveCortexCycle(
 	}
 	hub, err := cortex.Open(cortex.Config{DatabasePath: config.DatabasePath(dataDir), AdminAgents: file.AdminAgents})
 	if err != nil {
-		return controlcenter.ActionStop, fmt.Errorf("open Cortex: %w", err)
+		return controlcenter.ActionStop, fmt.Errorf("open Hope HUB: %w", err)
 	}
 	skillMem, err := hope.Open(config.HopeDatabasePath(dataDir), "")
 	if err != nil {
 		_ = hub.Close()
-		return controlcenter.ActionStop, fmt.Errorf("open HOPE Mem skill store: %w", err)
+		return controlcenter.ActionStop, fmt.Errorf("open Hope HUB skill store: %w", err)
 	}
 	authenticator, err := config.NewReloadingAuthenticator(dataDir)
 	if err != nil {
@@ -145,7 +145,7 @@ func serveCortexCycle(
 		_ = server.Shutdown(shutdownCtx)
 	}()
 
-	fmt.Fprintf(stdout, "HOPE Mem listening on http://%s (memory kernel ready)\n", address)
+	fmt.Fprintf(stdout, "Hope HUB listening on http://%s (memory kernel ready)\n", address)
 	serveErr := server.Serve(listener)
 	cancelCycle()
 	hopeCloseErr := skillMem.Close()
@@ -154,7 +154,7 @@ func serveCortexCycle(
 		return controlcenter.ActionStop, serveErr
 	}
 	if closeErr != nil {
-		return controlcenter.ActionStop, fmt.Errorf("close Cortex: %w", closeErr)
+		return controlcenter.ActionStop, fmt.Errorf("close Hope HUB: %w", closeErr)
 	}
 	if hopeCloseErr != nil {
 		return controlcenter.ActionStop, fmt.Errorf("close HOPE: %w", hopeCloseErr)

@@ -25,6 +25,8 @@ func (hub *Hub) Recall(ctx context.Context, query RecallQuery) (RecallResult, er
 	if ftsQuery == "" {
 		return RecallResult{Items: []RecallItem{}}, nil
 	}
+	queryVec := embedText(query.Text)
+	semanticEnabled := len(queryVec) > 0
 	tx, err := hub.db.BeginTx(ctx, nil)
 	if err != nil {
 		return RecallResult{}, fmt.Errorf("begin recall: %w", err)
@@ -93,9 +95,60 @@ LIMIT 100`, ftsQuery, query.IncludeCandidates,
 		return RecallResult{}, fmt.Errorf("close search results: %w", err)
 	}
 
+	// Semantic pass: when embeddings exist, also consider memories the FTS5
+	// query missed entirely (paraphrase / synonym). Cheap at this corpus size;
+	// only memories that already pass the scope/lifecycle filter are scored.
+	if semanticEnabled {
+		semRows, err := tx.QueryContext(ctx, `
+SELECT m.id, m.embedding
+FROM memories m
+WHERE length(m.embedding) = ?
+  AND (m.lifecycle IN ('active', 'canonical') OR (? AND m.lifecycle = 'candidate'))
+  AND (
+    m.scope = 'global'
+    OR (m.scope = 'project' AND ? != '' AND m.scope_key = ?)
+    OR (m.scope = 'domain' AND ? != '' AND m.scope_key = ?)
+    OR (m.scope = 'private' AND (m.created_by = ? OR ?))
+  )`, len(queryVec)*8, query.IncludeCandidates,
+			query.Project, query.Project, query.Domain, query.Domain,
+			query.AgentID, hub.isAdmin(query.AgentID))
+		if err != nil {
+			return RecallResult{}, fmt.Errorf("semantic scan: %w", err)
+		}
+		seen := make(map[string]bool, len(ranked))
+		for _, r := range ranked {
+			seen[r.id] = true
+		}
+		for semRows.Next() {
+			var id string
+			var blob []byte
+			if err := semRows.Scan(&id, &blob); err != nil {
+				_ = semRows.Close()
+				return RecallResult{}, fmt.Errorf("scan semantic: %w", err)
+			}
+			if seen[id] {
+				continue
+			}
+			vec := decodeVector(blob)
+			if len(vec) != len(queryVec) {
+				continue
+			}
+			sim := cosineSimilarity(queryVec, vec)
+			if sim < 0.30 {
+				continue
+			}
+			ranked = append(ranked, rankedID{id: id, rank: -sim}) // negative rank = semantic signal (higher sim -> "better")
+			seen[id] = true
+		}
+		if err := semRows.Close(); err != nil {
+			return RecallResult{}, fmt.Errorf("close semantic: %w", err)
+		}
+	}
+
 	result := RecallResult{
 		ID: recallID, Items: make([]RecallItem, 0, limit), TokenBudget: query.TokenBudget,
 	}
+	remoteDim := len(queryVec) >= RemoteEmbedDim
 	for _, candidate := range ranked {
 		memory, err := getMemory(ctx, tx, candidate.id)
 		if err != nil {
@@ -104,8 +157,28 @@ LIMIT 100`, ftsQuery, query.IncludeCandidates,
 		if !hub.canRecall(memory, query) {
 			continue
 		}
-		textScore := 1 / (1 + max(0, -candidate.rank))
-		score := 0.65*textScore + 0.20*memory.TruthScore + 0.15*memory.UtilityScore
+		var score float64
+		if candidate.rank < 0 {
+			// Pure semantic hit (FTS5 missed it). Score tracks cosine
+			// similarity directly so ordering reflects meaning, not a
+			// capped blend that collapses everything to 1.0.
+			sim := -candidate.rank
+			score = 0.80*sim + 0.20*memory.TruthScore
+		} else {
+			textScore := 1 / (1 + max(0, -candidate.rank))
+			if textScore > 1 {
+				textScore = 1
+			}
+			score = 0.65*textScore + 0.20*memory.TruthScore + 0.15*memory.UtilityScore
+			if semanticEnabled && len(memory.Embedding) == len(queryVec) {
+				semantic := cosineSimilarity(queryVec, memory.Embedding)
+				weight := 0.30
+				if !remoteDim {
+					weight = 0.15
+				}
+				score = (1-weight)*score + weight*semantic
+			}
+		}
 		added, err := appendRecallItem(&result, RecallItem{Memory: memory, Score: score})
 		if err != nil {
 			return RecallResult{}, err

@@ -91,6 +91,9 @@ type Memory struct {
 	Revision     int        `json:"revision"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
+	// Embedding is the offline semantic vector; omitted from JSON when empty
+	// so the public API response shape is unchanged for callers that ignore it.
+	Embedding []float64 `json:"embedding,omitempty"`
 }
 
 type RememberCommand struct {
