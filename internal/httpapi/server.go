@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"cortex.local/cortex/internal/controlcenter"
-	"cortex.local/cortex/internal/controlplane"
 	"cortex.local/cortex/internal/cortex"
 	hopemem "cortex.local/cortex/internal/hope"
 	"cortex.local/cortex/internal/intelligence"
@@ -22,7 +21,6 @@ type Server struct {
 	control  runtimeControl
 	launcher *localauth.Broker
 	advisor  intelligence.Advisor
-	hope     *controlplane.Plane
 	skillMem skillMemory
 }
 
@@ -56,7 +54,7 @@ func NewWithControlLauncherAndAdvisor(
 	launcher *localauth.Broker,
 	advisor intelligence.Advisor,
 ) http.Handler {
-	return newHandler(hub, auth, control, launcher, advisor, nil, nil)
+	return newHandler(hub, auth, control, launcher, advisor, nil)
 }
 
 func NewWithSkillMem(
@@ -67,18 +65,7 @@ func NewWithSkillMem(
 	advisor intelligence.Advisor,
 	skillMem *hopemem.Hub,
 ) http.Handler {
-	return newHandler(hub, auth, control, launcher, advisor, nil, skillMem)
-}
-
-func NewWithHOPE(
-	hub *cortex.Hub,
-	auth Authenticator,
-	control runtimeControl,
-	launcher *localauth.Broker,
-	advisor intelligence.Advisor,
-	hopePlane *controlplane.Plane,
-) http.Handler {
-	return newHandler(hub, auth, control, launcher, advisor, hopePlane, nil)
+	return newHandler(hub, auth, control, launcher, advisor, skillMem)
 }
 
 func newHandler(
@@ -87,12 +74,11 @@ func newHandler(
 	control runtimeControl,
 	launcher *localauth.Broker,
 	advisor intelligence.Advisor,
-	hopePlane *controlplane.Plane,
 	skillMem *hopemem.Hub,
 ) http.Handler {
 	server := &Server{
 		hub: hub, auth: auth, sessions: newDashboardSessions(), control: control,
-		launcher: launcher, advisor: advisor, hope: hopePlane, skillMem: skillMem,
+		launcher: launcher, advisor: advisor, skillMem: skillMem,
 	}
 	mux := http.NewServeMux()
 	staticFiles, _ := fs.Sub(dashboardAssets, "static")
@@ -110,24 +96,6 @@ func newHandler(
 	mux.HandleFunc("POST /ui/curator/run", server.curatorRun)
 	mux.HandleFunc("POST /ui/advisor/settings", server.advisorSettings)
 	mux.HandleFunc("POST /ui/advisor/run", server.advisorRun)
-	mux.HandleFunc("POST /ui/hope/work-modes/{modeID}", server.hopeWorkMode)
-	mux.HandleFunc("POST /ui/hope/work-modes", server.hopeSaveWorkMode)
-	mux.HandleFunc("POST /ui/hope/integrations/{integrationID}", server.hopeIntegrationAction)
-	mux.HandleFunc("POST /ui/hope/agents", server.hopeSaveAgent)
-	mux.HandleFunc("POST /ui/hope/agents/{agentID}", server.hopeAgentAction)
-	mux.HandleFunc("POST /ui/hope/projects/roots", server.hopeAddProjectRoot)
-	mux.HandleFunc("POST /ui/hope/projects", server.hopeSaveProject)
-	mux.HandleFunc("POST /ui/hope/projects/discover", server.hopeDiscoverProjects)
-	mux.HandleFunc("POST /ui/hope/projects/{projectID}/open", server.hopeOpenProject)
-	mux.HandleFunc("POST /ui/hope/projects/{projectID}/delete", server.hopeDeleteProject)
-	mux.HandleFunc("POST /ui/hope/skills/sync", server.hopeSyncSkills)
-	mux.HandleFunc("POST /ui/hope/skills", server.hopeCreateSkill)
-	mux.HandleFunc("POST /ui/hope/skills/import", server.hopeImportSkill)
-	mux.HandleFunc("POST /ui/hope/skills/{skillID}", server.hopeUpdateSkill)
-	mux.HandleFunc("POST /ui/hope/skills/{skillID}/deploy", server.hopeDeploySkill)
-	mux.HandleFunc("POST /ui/hope/skills/route", server.hopeRouteSkills)
-	mux.HandleFunc("POST /ui/hope/automations/{jobID}", server.hopeAutomationAction)
-	mux.HandleFunc("POST /ui/hope/security", server.hopeSecurity)
 	mux.HandleFunc("GET /ui/memories/{memoryID}", server.dashboardDetail)
 	mux.HandleFunc("POST /ui/memories/{memoryID}/review", server.dashboardReview)
 	mux.HandleFunc("POST /ui/memories/review-batch", server.dashboardReviewBatch)

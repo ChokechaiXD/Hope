@@ -130,7 +130,7 @@ func shortcutInstallScript(executable, dataDir string) string {
 		"$shortcut.TargetPath=(Get-Command powershell.exe).Source",
 		"$shortcut.Arguments=" + powerShellLiteral(arguments),
 		"$shortcut.WorkingDirectory=" + powerShellLiteral(dataDir),
-		"$shortcut.Description='Open HOPE Agent Hub'",
+		"$shortcut.Description='Open HOPE Mem'",
 		"$shortcut.IconLocation=" + powerShellLiteral(executable+",0"),
 		"$shortcut.WindowStyle=7",
 		"$shortcut.Save()",

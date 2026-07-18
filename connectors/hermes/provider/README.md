@@ -1,8 +1,8 @@
 # HOPE Context Bridge for Hermes
 
 This adapter translates Hermes memory lifecycle calls and tools to the Cortex
-v1 HTTP protocol. Cortex remains the memory data owner and HOPE remains a
-separate control plane; Hermes continues to own inference and tool execution.
+v1 HTTP protocol. HOPE Mem remains the memory data owner; Hermes continues to
+own inference and tool execution.
 
 Install and configure all profiles with:
 

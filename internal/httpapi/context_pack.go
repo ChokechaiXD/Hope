@@ -142,13 +142,7 @@ func (server *Server) contextSkillFeedback(writer http.ResponseWriter, request *
 }
 
 func (server *Server) activeSkillMem() skillMemory {
-	if server.skillMem != nil {
-		return server.skillMem
-	}
-	if server.hope != nil {
-		return server.hope
-	}
-	return nil
+	return server.skillMem
 }
 
 func (server *Server) rankAmbiguousSkills(ctx context.Context, agentID, task string, matches []hope.SkillMatch) ([]hope.SkillMatch, skillRouteEvidence) {

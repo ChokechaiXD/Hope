@@ -191,7 +191,16 @@ SET description = 'MIKA ทำหน้าที่ deputy และเปิด
 WHERE id = 'daily' AND description = 'MIKA พร้อม 9Router สำหรับงานทั่วไป';
 `
 
-var migrations = []string{schemaV1, schemaV2, schemaV3, schemaV4}
+const schemaV5 = `
+DROP TABLE IF EXISTS project_agents;
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS project_roots;
+DROP TABLE IF EXISTS work_modes;
+DROP TABLE IF EXISTS agents;
+DROP TABLE IF EXISTS managed_processes;
+`
+
+var migrations = []string{schemaV1, schemaV2, schemaV3, schemaV4, schemaV5}
 
 func openDatabase(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)

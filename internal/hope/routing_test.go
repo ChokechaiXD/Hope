@@ -65,35 +65,7 @@ func TestSkillRouteFeedbackIsTrackedOnce(t *testing.T) {
 		t.Fatalf("skill counts = use:%d success:%d failure:%d", skill.UseCount, skill.SuccessCount, skill.FailureCount)
 	}
 	var version int
-	if err := hub.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil || version != 4 {
-		t.Fatalf("schema version=%d err=%v, want 4", version, err)
-	}
-}
-
-func TestSaveWorkModeUpdatesWithoutDuplicates(t *testing.T) {
-	t.Parallel()
-	hub, err := Open(filepath.Join(t.TempDir(), "hope.db"), "")
-	if err != nil {
-		t.Fatalf("open HOPE: %v", err)
-	}
-	t.Cleanup(func() { _ = hub.Close() })
-	ctx := context.Background()
-	mode := WorkMode{
-		ID: "creative", Name: "Creative", Integrations: []string{"9router", "9router", ""},
-		Agents: []string{"aura", "aura"}, OpenTelegram: true,
-	}
-	if err := hub.SaveWorkMode(ctx, mode); err != nil {
-		t.Fatalf("save work mode: %v", err)
-	}
-	mode.Name, mode.Agents = "Creative Studio", []string{"aura", "nari"}
-	if err := hub.SaveWorkMode(ctx, mode); err != nil {
-		t.Fatalf("update work mode: %v", err)
-	}
-	stored, err := hub.WorkMode(ctx, "creative")
-	if err != nil {
-		t.Fatalf("load work mode: %v", err)
-	}
-	if stored.Name != "Creative Studio" || len(stored.Integrations) != 1 || len(stored.Agents) != 2 {
-		t.Fatalf("stored mode = %#v", stored)
+	if err := hub.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil || version != 5 {
+		t.Fatalf("schema version=%d err=%v, want 5", version, err)
 	}
 }
