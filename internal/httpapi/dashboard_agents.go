@@ -71,7 +71,7 @@ func (server *Server) hermesSettings(writer http.ResponseWriter, request *http.R
 		PrefetchTokenBudget: prefetchBudget, RecallTokenBudget: recallBudget,
 	})
 	if errors.Is(err, controlcenter.ErrActionPending) {
-		http.Error(writer, "another Cortex operation is already running", http.StatusConflict)
+		http.Error(writer, "another HOPE operation is already running", http.StatusConflict)
 		return
 	}
 	if errors.Is(err, controlcenter.ErrInvalidAgentSettings) {

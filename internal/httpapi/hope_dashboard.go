@@ -74,7 +74,7 @@ func (server *Server) hopeDashboard(writer http.ResponseWriter, request *http.Re
 		return
 	}
 	if server.hope == nil {
-		http.Error(writer, "HOPE control plane is unavailable", http.StatusServiceUnavailable)
+		http.Error(writer, "HOPE is unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	section := strings.TrimSpace(request.URL.Query().Get("section"))

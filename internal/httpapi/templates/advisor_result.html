@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cortex · สรุปจากผู้ช่วยโมเดล</title>
+  <title>HOPE · Model Review</title>
   <link rel="stylesheet" href="/static/cortex.css">
 </head>
 <body>
   <header class="topbar">
-    <div><p class="eyebrow">ความเห็นประกอบ · ไม่ใช่หลักฐาน</p><h1>Cortex</h1></div>
+    <div><p class="eyebrow">MODEL REVIEW</p><h1>HOPE</h1></div>
     <a class="back-link" href="/knowledge">กลับ Knowledge Center</a>
   </header>
   <main>
@@ -16,7 +16,7 @@
       <p class="eyebrow">สรุปเรื่องสำคัญ</p>
       <h2>มุมมองจากผู้ช่วยโมเดล</h2>
       <p class="advisor-summary">{{.Summary}}</p>
-      <p class="muted">{{.Model}} · ส่ง {{.InputTokens}} tokens · รับ {{.OutputTokens}} tokens</p>
+      <p class="muted">{{.Model}} | ส่ง {{.InputTokens}} tokens | รับ {{.OutputTokens}} tokens</p>
     </article>
     {{if .Items}}
     <section class="advisor-result-items" aria-label="ความเห็นรายความรู้">

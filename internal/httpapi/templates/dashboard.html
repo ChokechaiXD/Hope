@@ -9,9 +9,9 @@
 <body>
   <header class="topbar">
     <div>
-      <p class="eyebrow">HOPE · Knowledge Center</p>
+      <p class="eyebrow">HOPE KNOWLEDGE</p>
       <h1>Knowledge Center</h1>
-      <p class="authority-inline">Owner: {{.OwnerName}} · Deputy: {{.DeputyName}} · Session: {{.AgentID}}</p>
+      <p class="authority-inline">Owner: {{.OwnerName}} | Deputy: {{.DeputyName}} | Session: {{.AgentID}}</p>
     </div>
     <div class="topbar-actions">
       <a class="mode-link" href="/">กลับ HOPE</a>
@@ -26,7 +26,7 @@
         <p class="eyebrow">สถานะระบบ</p>
         <h2 id="system-title">Knowledge Kernel พร้อมใช้งาน</h2>
         <p class="system-state"><span aria-hidden="true"></span>กำลังทำงานในเครื่อง</p>
-        {{if .Advanced}}<p class="muted">{{.System.Listen}} · Version {{.System.Version}} · PID {{.System.PID}} · เปิดมาแล้ว {{.System.Uptime}}</p>{{end}}
+        {{if .Advanced}}<p class="muted">{{.System.Listen}} | Version {{.System.Version}} | PID {{.System.PID}} | เปิดมาแล้ว {{.System.Uptime}}</p>{{end}}
       </div>
       <div class="system-actions">
         <form method="post" action="/ui/hermes/sync">
@@ -53,10 +53,10 @@
     <section class="agent-settings-panel" id="agent-settings" aria-labelledby="agent-settings-title">
       <div class="section-head">
         <div>
-          <p class="eyebrow">ตั้งค่าผ่านหน้าเว็บ · ไม่ต้องแก้ไฟล์</p>
+          <p class="eyebrow">AGENT LEARNING</p>
           <h2 id="agent-settings-title">การเรียนรู้ของแต่ละเอเจนต์</h2>
         </div>
-        <p class="muted">Project มาก่อน domain · ถ้าเว้นว่างจะเก็บบทเรียนเฉพาะตัว</p>
+        <p class="muted">Project มาก่อน domain ถ้าเว้นว่างจะเก็บเป็นบทเรียนเฉพาะตัว</p>
       </div>
       <div class="agent-settings-list">
         {{range .AgentSettings}}
@@ -74,11 +74,11 @@
             <option value="50" {{if eq .AutoCaptureEveryTurns 50}}selected{{end}}>ทุก 50 เทิร์น</option>
           </select></label>
           <label><span>งบ context อัตโนมัติ</span><select name="prefetch_token_budget">
-            <option value="300" {{if eq .PrefetchTokenBudget 300}}selected{{end}}>ประหยัด · 300</option>
-            <option value="500" {{if eq .PrefetchTokenBudget 500}}selected{{end}}>เบา · 500</option>
-            <option value="700" {{if eq .PrefetchTokenBudget 700}}selected{{end}}>สมดุล · 700</option>
-            <option value="1200" {{if eq .PrefetchTokenBudget 1200}}selected{{end}}>ละเอียด · 1,200</option>
-            <option value="2000" {{if eq .PrefetchTokenBudget 2000}}selected{{end}}>สูง · 2,000</option>
+            <option value="300" {{if eq .PrefetchTokenBudget 300}}selected{{end}}>ประหยัด - 300</option>
+            <option value="500" {{if eq .PrefetchTokenBudget 500}}selected{{end}}>เบา - 500</option>
+            <option value="700" {{if eq .PrefetchTokenBudget 700}}selected{{end}}>สมดุล - 700</option>
+            <option value="1200" {{if eq .PrefetchTokenBudget 1200}}selected{{end}}>ละเอียด - 1,200</option>
+            <option value="2000" {{if eq .PrefetchTokenBudget 2000}}selected{{end}}>สูง - 2,000</option>
           </select></label>
           <label class="check-field"><input type="checkbox" name="auto_capture_enabled" value="yes" {{if .AutoCaptureEnabled}}checked{{end}}> ให้ HOPE เก็บเฉพาะบทเรียนที่ทำเครื่องหมาย</label>
           {{if $.Advanced}}
@@ -122,9 +122,9 @@
     <section class="curator-panel" aria-labelledby="curator-title">
       <div class="curator-head">
         <div>
-          <p class="eyebrow">ผู้ช่วยจัดระเบียบ · ไม่ใช้ API</p>
+          <p class="eyebrow">LOCAL CURATOR</p>
           <h2 id="curator-title">HOPE แนะนำให้ดูอะไร</h2>
-          <p class="muted">โหมดปัจจุบัน: {{.Curator.ModeLabel}} · กฎหลักทุกข้อยังลดระดับหรือแทนที่ได้</p>
+          <p class="muted">โหมดปัจจุบัน: {{.Curator.ModeLabel}} ทุกกฎหลักยังลดระดับหรือแทนที่ได้</p>
         </div>
         <form method="post" action="/ui/curator/run" class="curator-run-actions">
           <input type="hidden" name="csrf" value="{{.CSRFToken}}">
@@ -142,7 +142,7 @@
 
       {{if .Curator.LastRun}}
       <p class="curator-last-run {{if .Curator.LastRun.Error}}notice{{end}}">
-        วิเคราะห์ล่าสุด {{.Curator.LastRun.When}} · รับอัตโนมัติ {{.Curator.LastRun.Applied}} รายการ · พบเรื่องควรดู {{.Curator.LastRun.Attention}} รายการ
+        วิเคราะห์ล่าสุด {{.Curator.LastRun.When}} | รับอัตโนมัติ {{.Curator.LastRun.Applied}} รายการ | พบเรื่องควรดู {{.Curator.LastRun.Attention}} รายการ
         {{if .Curator.LastRun.Error}}<br>รอบล่าสุดทำงานไม่ครบ: {{.Curator.LastRun.Error}}{{end}}
       </p>
       {{end}}
@@ -154,7 +154,7 @@
           <div class="memory-meta"><span class="status">{{.CategoryLabel}}</span><span>{{.KindLabel}}</span><span>{{.AppliesTo}}</span></div>
           <h3><a href="/ui/memories/{{.ID}}">{{.Title}}</a></h3>
           <p>{{.Reason}}</p>
-          <p class="muted">{{.Evidence}} · แนะนำ: {{.ActionLabel}}</p>
+          <p class="muted">{{.Evidence}} | แนะนำ: {{.ActionLabel}}</p>
         </article>
         {{end}}
       </div>
@@ -202,12 +202,12 @@
     <section class="advisor-panel" id="advisor-settings" aria-labelledby="advisor-title">
       <div class="advisor-head">
         <div>
-          <p class="eyebrow">ประตูตรวจชั้นที่สอง · เลือกใช้เท่านั้น</p>
+          <p class="eyebrow">MODEL REVIEW</p>
           <h2 id="advisor-title">ให้โมเดลช่วยสรุปเฉพาะเรื่องสำคัญ</h2>
           {{if .Advisor.Settings.Enabled}}
-          <p class="muted">พร้อมใช้เมื่อพี่กดเรียก · {{.Advisor.Settings.Model}} · ไม่สามารถข้ามกฎเหล็กของ Curator</p>
+          <p class="muted">พร้อมใช้เมื่อพี่กดเรียก | {{.Advisor.Settings.Model}} | โมเดลอนุมัติแทนพี่ไม่ได้</p>
           {{else}}
-          <p class="muted">ปิดอยู่ · Curator แบบไม่เสีย token ยังทำงานตามปกติ</p>
+          <p class="muted">ปิดอยู่ Curator แบบไม่เสีย token ยังทำงานตามปกติ</p>
           {{end}}
         </div>
         {{if .Advisor.Settings.Enabled}}
@@ -219,7 +219,7 @@
       </div>
       {{if .Advisor.LastRun}}
       <p class="advisor-usage {{if .Advisor.LastRun.Error}}notice{{end}}">
-        ใช้ล่าสุด {{.Advisor.LastRun.When}} · {{.Advisor.LastRun.Model}} · ส่ง {{.Advisor.LastRun.InputTokens}} tokens · รับ {{.Advisor.LastRun.OutputTokens}} tokens
+        ใช้ล่าสุด {{.Advisor.LastRun.When}} | {{.Advisor.LastRun.Model}} | ส่ง {{.Advisor.LastRun.InputTokens}} tokens | รับ {{.Advisor.LastRun.OutputTokens}} tokens
         {{if .Advisor.LastRun.Error}}<br>รอบล่าสุดไม่สำเร็จ: {{.Advisor.LastRun.Error}}{{end}}
       </p>
       {{if .Advisor.LastRun.Summary}}<p class="advisor-last-summary"><strong>สรุปล่าสุด:</strong> {{.Advisor.LastRun.Summary}}</p>{{end}}
@@ -233,22 +233,22 @@
           <label class="model-field"><span>โมเดล</span><input name="model" list="advisor-models" value="{{.Advisor.Settings.Model}}" placeholder="กดโหลดรายการ แล้วเลือกโมเดล"></label>
           <datalist id="advisor-models">{{range .Advisor.Models}}<option value="{{.ID}}">{{.OwnedBy}}</option>{{end}}</datalist>
           <label><span>งบข้อมูลเข้า</span><select name="input_token_budget">
-            <option value="600" {{if eq .Advisor.Settings.InputTokenBudget 600}}selected{{end}}>ประหยัด · 600</option>
-            <option value="1200" {{if eq .Advisor.Settings.InputTokenBudget 1200}}selected{{end}}>สมดุล · 1,200</option>
-            <option value="2400" {{if eq .Advisor.Settings.InputTokenBudget 2400}}selected{{end}}>ละเอียด · 2,400</option>
-            <option value="4000" {{if eq .Advisor.Settings.InputTokenBudget 4000}}selected{{end}}>สูงสุด · 4,000</option>
+            <option value="600" {{if eq .Advisor.Settings.InputTokenBudget 600}}selected{{end}}>ประหยัด - 600</option>
+            <option value="1200" {{if eq .Advisor.Settings.InputTokenBudget 1200}}selected{{end}}>สมดุล - 1,200</option>
+            <option value="2400" {{if eq .Advisor.Settings.InputTokenBudget 2400}}selected{{end}}>ละเอียด - 2,400</option>
+            <option value="4000" {{if eq .Advisor.Settings.InputTokenBudget 4000}}selected{{end}}>สูงสุด - 4,000</option>
           </select></label>
           <label><span>งบคำตอบ</span><select name="output_token_budget">
-            <option value="200" {{if eq .Advisor.Settings.OutputTokenBudget 200}}selected{{end}}>สั้น · 200</option>
-            <option value="350" {{if eq .Advisor.Settings.OutputTokenBudget 350}}selected{{end}}>สมดุล · 350</option>
-            <option value="600" {{if eq .Advisor.Settings.OutputTokenBudget 600}}selected{{end}}>ละเอียด · 600</option>
-            <option value="1000" {{if eq .Advisor.Settings.OutputTokenBudget 1000}}selected{{end}}>สูงสุด · 1,000</option>
+            <option value="200" {{if eq .Advisor.Settings.OutputTokenBudget 200}}selected{{end}}>สั้น - 200</option>
+            <option value="350" {{if eq .Advisor.Settings.OutputTokenBudget 350}}selected{{end}}>สมดุล - 350</option>
+            <option value="600" {{if eq .Advisor.Settings.OutputTokenBudget 600}}selected{{end}}>ละเอียด - 600</option>
+            <option value="1000" {{if eq .Advisor.Settings.OutputTokenBudget 1000}}selected{{end}}>สูงสุด - 1,000</option>
           </select></label>
           <label><span>ระดับการวิเคราะห์</span><select name="effort">
             <option value="auto" {{if .Advisor.EffortAuto}}selected{{end}}>Auto ตามจำนวนเรื่อง</option>
-            <option value="low" {{if .Advisor.EffortLow}}selected{{end}}>ต่ำ · เน้นประหยัด</option>
+            <option value="low" {{if .Advisor.EffortLow}}selected{{end}}>ต่ำ - เน้นประหยัด</option>
             <option value="medium" {{if .Advisor.EffortMedium}}selected{{end}}>กลาง</option>
-            <option value="high" {{if .Advisor.EffortHigh}}selected{{end}}>สูง · ใช้เมื่อสำคัญจริง</option>
+            <option value="high" {{if .Advisor.EffortHigh}}selected{{end}}>สูง - ใช้เมื่อสำคัญจริง</option>
           </select></label>
           <div class="advisor-settings-actions">
             <a class="quiet-link" href="/knowledge?refresh_models=1#advisor-settings">โหลดรายการโมเดลปัจจุบัน</a>
@@ -268,7 +268,7 @@
     <section class="candidate-inbox" id="candidate-inbox" aria-labelledby="candidate-inbox-title">
       <div class="section-head">
         <div>
-          <p class="eyebrow">จัดกลุ่มให้ก่อน · ไม่อนุมัติเอง</p>
+          <p class="eyebrow">REVIEW QUEUE</p>
           <h2 id="candidate-inbox-title">กล่องตรวจความรู้เก่า</h2>
         </div>
         <a class="quiet-link" href="/knowledge?lifecycle=candidate{{if .Advanced}}&view=advanced{{end}}#candidate-inbox">ดูรายการรอตรวจทั้งหมด</a>
@@ -289,7 +289,7 @@
 
     <section class="section-head explorer-head">
       <div><p class="eyebrow">สมองที่สองที่ตรวจสอบย้อนหลังได้</p><h2>คลังความรู้</h2></div>
-      <p class="muted">พบ {{.Matched}} รายการ · ความน่าเชื่อถือและประโยชน์ถูกติดตามแยกกัน</p>
+      <p class="muted">พบ {{.Matched}} รายการ ความน่าเชื่อถือและประโยชน์ถูกติดตามแยกกัน</p>
     </section>
     <form class="explorer" method="get" action="/knowledge" aria-label="ค้นหาและกรองความรู้">
       {{if .Advanced}}<input type="hidden" name="view" value="advanced">{{end}}
@@ -368,7 +368,7 @@
           <div><dt>Created by</dt><dd>{{.CreatedBy}}</dd></div>
           <div><dt>Revision</dt><dd>{{.Revision}}</dd></div>
           <div><dt>Memory key</dt><dd>{{.MemoryKey}}</dd></div>
-          <div><dt>Source ref</dt><dd>{{if .SourceRef}}{{.SourceRef}}{{else}}—{{end}}</dd></div>
+          <div><dt>Source ref</dt><dd>{{if .SourceRef}}{{.SourceRef}}{{else}}ไม่มี{{end}}</dd></div>
         </dl>
         {{end}}
         {{if or .CanApprove .CanPromote .CanReject .CanArchive}}

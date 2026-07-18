@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cortex · เชื่อมเอเจนต์แล้ว</title>
+  <title>HOPE · เชื่อมเอเจนต์แล้ว</title>
   <link rel="stylesheet" href="/static/cortex.css">
 </head>
 <body class="login-shell">
   <main class="login-card" role="status">
     <p class="eyebrow">เชื่อมต่อ Hermes</p>
     <h1>เชื่อมเอเจนต์แล้ว {{.Count}} ตัว</h1>
-    <p>{{range $index, $agent := .Agents}}{{if $index}} · {{end}}{{$agent}}{{end}}</p>
+    <p>{{range $index, $agent := .Agents}}{{if $index}}, {{end}}{{$agent}}{{end}}</p>
     <p class="muted">สำรองค่าก่อนเปลี่ยนไว้ที่ <code>{{.BackupDir}}</code> หากมีปัญหาสามารถย้อนกลับได้</p>
     <p><a href="/knowledge">กลับ Knowledge Center</a></p>
   </main>

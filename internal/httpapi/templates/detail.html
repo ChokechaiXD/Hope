@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cortex · {{.Memory.Title}}</title>
+  <title>HOPE · {{.Memory.Title}}</title>
   <link rel="stylesheet" href="/static/cortex.css">
 </head>
 <body>
   <header class="topbar">
-    <div><p class="eyebrow">ตรวจความรู้ก่อนนำไปใช้</p><h1>Cortex</h1></div>
+    <div><p class="eyebrow">KNOWLEDGE DETAIL</p><h1>HOPE</h1></div>
     <div class="topbar-actions">
       {{if .Advanced}}<a class="mode-link" href="/ui/memories/{{.Memory.ID}}">มุมมองทั่วไป</a>{{else}}<a class="mode-link" href="/ui/memories/{{.Memory.ID}}?view=advanced">รายละเอียดขั้นสูง</a>{{end}}
       <a class="back-link" href="/knowledge{{if .Advanced}}?view=advanced{{end}}">← กลับคลังความรู้</a>
@@ -41,12 +41,12 @@
       <dl class="technical-details" aria-label="รายละเอียดทางเทคนิค">
         <div><dt>Lifecycle</dt><dd>{{.Memory.Lifecycle}}</dd></div>
         <div><dt>Kind</dt><dd>{{.Memory.Kind}}</dd></div>
-        <div><dt>Scope</dt><dd>{{.Memory.Scope}}{{if .Memory.ScopeKey}} · {{.Memory.ScopeKey}}{{end}}</dd></div>
+        <div><dt>Scope</dt><dd>{{.Memory.Scope}}{{if .Memory.ScopeKey}} / {{.Memory.ScopeKey}}{{end}}</dd></div>
         <div><dt>Revision</dt><dd>{{.Memory.Revision}}</dd></div>
         <div><dt>Truth score</dt><dd>{{printf "%.2f" .Memory.TruthScore}}</dd></div>
         <div><dt>Utility score</dt><dd>{{printf "%.2f" .Memory.UtilityScore}}</dd></div>
         <div><dt>Created by</dt><dd>{{.Memory.CreatedBy}}</dd></div>
-        <div><dt>Source ref</dt><dd>{{if .Memory.SourceRef}}{{.Memory.SourceRef}}{{else}}—{{end}}</dd></div>
+        <div><dt>Source ref</dt><dd>{{if .Memory.SourceRef}}{{.Memory.SourceRef}}{{else}}ไม่มี{{end}}</dd></div>
       </dl>
       {{end}}
 
@@ -69,7 +69,7 @@
       {{range .Events}}
       <li>
         <div><strong>{{.Label}}</strong><span>{{.CreatedAt.Format "2006-01-02 15:04:05Z07:00"}}</span></div>
-        <p>โดย {{.ActorID}}{{if .SessionID}} · Session {{.SessionID}}{{end}}{{if .Reason}} · {{.Reason}}{{end}}</p>
+        <p>โดย {{.ActorID}}{{if .SessionID}} / Session {{.SessionID}}{{end}}{{if .Reason}} / {{.Reason}}{{end}}</p>
         {{if $.Advanced}}{{if ne .MetadataJSON "null"}}<code>{{.MetadataJSON}}</code>{{end}}{{end}}
       </li>
       {{else}}<li>ยังไม่มีประวัติ</li>{{end}}

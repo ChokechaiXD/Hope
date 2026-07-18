@@ -121,7 +121,7 @@ func (server *Server) hopeSaveAgent(writer http.ResponseWriter, request *http.Re
 		Profile: request.FormValue("profile"), TelegramURL: request.FormValue("telegram_url"),
 		AvatarPath: request.FormValue("avatar_path"), Summary: request.FormValue("summary"),
 		Capabilities: controlplane.ParseKeywords(request.FormValue("capabilities")),
-		PersonaPath: request.FormValue("persona_path"), PersonaNote: request.FormValue("persona_note"),
+		PersonaPath:  request.FormValue("persona_path"), PersonaNote: request.FormValue("persona_note"),
 		Enabled: true,
 	}
 	createProfile := request.FormValue("create_profile") == "yes"
@@ -131,7 +131,7 @@ func (server *Server) hopeSaveAgent(writer http.ResponseWriter, request *http.Re
 	}
 	if createProfile && server.control != nil {
 		if _, err := server.control.SyncHermes(request.Context()); err != nil {
-			http.Error(writer, "Agent was created, but Cortex connector sync failed: "+err.Error(), http.StatusInternalServerError)
+			http.Error(writer, "Agent was created, but HOPE connector sync failed: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}

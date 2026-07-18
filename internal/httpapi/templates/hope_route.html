@@ -1,1 +1,41 @@
-<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HOPE · Skill Router</title><link rel="stylesheet" href="/static/cortex.css"></head><body class="action-page"><main class="route-card"><p class="eyebrow">SKILL ROUTER</p><h1>Skill ที่เหมาะกับ “{{.Query}}”</h1><p class="muted">{{if eq .Routing.Strategy "ai-tiebreaker"}}ใช้ 9Router เฉพาะรอบตัดสิน: input {{.Routing.InputTokens}} · output {{.Routing.OutputTokens}} tokens{{else}}ตัดสินด้วยกฎในเครื่อง · ไม่เสีย token{{end}}</p><div class="route-results">{{range .Matches}}<article><span class="route-score">{{printf "%.1f" .Score}}</span><div><h2>{{.Skill.Name}}</h2><p>{{.Skill.Description}}</p><small>{{.Reason}}</small></div></article>{{else}}<div class="empty"><h2>ยังไม่พบ Skill ที่ตรง</h2><p>ลองอัปเดตคลังหรือเพิ่ม keywords ให้ Skill</p></div>{{end}}</div><a class="quiet-link" href="/?section=skills">กลับ Skill Center</a></main></body></html>
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HOPE · Skill Router</title>
+  <link rel="stylesheet" href="/static/cortex.css">
+  <link rel="stylesheet" href="/static/hope.css">
+</head>
+<body class="action-page">
+  <main class="route-card">
+    <p class="eyebrow">SKILL ROUTER</p>
+    <h1>{{.Query}}</h1>
+    <div class="route-meter" aria-label="routing cost">
+      {{if eq .Routing.Strategy "ai-tiebreaker"}}
+      <span>9Router tie-break</span><span>ส่ง {{.Routing.InputTokens}} tokens</span><span>รับ {{.Routing.OutputTokens}} tokens</span>
+      {{else}}
+      <span>Local rules</span><span>0 tokens</span><span>เร็วสุด</span>
+      {{end}}
+    </div>
+    <div class="route-results">
+      {{range .Matches}}
+      <article>
+        <span class="route-score">{{printf "%.1f" .Score}}</span>
+        <div>
+          <h2>{{.Skill.Name}}</h2>
+          <p>{{.Skill.Description}}</p>
+          <small>{{.Reason}}</small>
+        </div>
+      </article>
+      {{else}}
+      <div class="empty">
+        <h2>ยังไม่พบ Skill ที่ตรง</h2>
+        <p>เพิ่ม keywords ให้ Skill หรืออัปเดตคลัง</p>
+      </div>
+      {{end}}
+    </div>
+    <a class="quiet-link" href="/?section=skills">กลับ Skill Center</a>
+  </main>
+</body>
+</html>

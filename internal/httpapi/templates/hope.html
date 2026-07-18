@@ -92,7 +92,7 @@
     {{end}}
 
     {{if eq .Section "settings"}}
-      <section class="hope-card settings-card"><p class="eyebrow">LOCAL ACCESS</p><h2>การเข้าใช้หน้า HOPE</h2><p>Agent API ยังใช้ token ที่ซ่อนไว้เสมอ การตั้งค่านี้มีผลเฉพาะหน้าเว็บ</p><form method="post" action="/ui/hope/security" class="hope-form"><input type="hidden" name="csrf" value="{{.CSRFToken}}"><label class="check-field wide"><input type="checkbox" name="pin_enabled" value="yes" {{if not .Passwordless}}checked{{end}}> ถาม PIN ก่อนเปิดหน้าเว็บ</label><label><span>PIN ใหม่ 4–8 หลัก</span><input name="pin" inputmode="numeric" pattern="[0-9]{4,8}" placeholder="4826"></label><button>บันทึก</button></form><p class="muted">เมื่อปิด PIN หน้าเว็บเข้าได้อัตโนมัติเฉพาะ loopback; HOPE ไม่รับ LAN binding</p></section>
+      <section class="hope-card settings-card"><p class="eyebrow">LOCAL ACCESS</p><h2>การเข้าใช้หน้า HOPE</h2><p>Agent API ยังใช้ token ที่ซ่อนไว้เสมอ การตั้งค่านี้มีผลเฉพาะหน้าเว็บ</p><form method="post" action="/ui/hope/security" class="hope-form"><input type="hidden" name="csrf" value="{{.CSRFToken}}"><label class="check-field wide"><input type="checkbox" name="pin_enabled" value="yes" {{if not .Passwordless}}checked{{end}}> ถาม PIN ก่อนเปิดหน้าเว็บ</label><label><span>PIN ใหม่ 4-8 หลัก</span><input name="pin" inputmode="numeric" pattern="[0-9]{4,8}" placeholder="4826"></label><button>บันทึก</button></form><p class="muted">เมื่อปิด PIN หน้าเว็บเข้าได้อัตโนมัติเฉพาะ loopback; HOPE ไม่รับ LAN binding</p></section>
     {{end}}
   </main>
 </body>

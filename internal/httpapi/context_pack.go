@@ -107,7 +107,7 @@ func (server *Server) contextPack(writer http.ResponseWriter, request *http.Requ
 
 func (server *Server) contextSkillFeedback(writer http.ResponseWriter, request *http.Request) {
 	if server.hope == nil {
-		writeAPIError(writer, http.StatusServiceUnavailable, "hope_unavailable", "HOPE control plane is unavailable")
+		writeAPIError(writer, http.StatusServiceUnavailable, "hope_unavailable", "HOPE is unavailable")
 		return
 	}
 	key, ok := idempotencyKey(writer, request)

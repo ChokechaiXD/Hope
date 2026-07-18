@@ -35,7 +35,7 @@ func (server *Server) hermesSync(writer http.ResponseWriter, request *http.Reque
 	}
 	result, err := server.control.SyncHermes(request.Context())
 	if errors.Is(err, controlcenter.ErrActionPending) {
-		http.Error(writer, "another Cortex operation is already running", http.StatusConflict)
+		http.Error(writer, "another HOPE operation is already running", http.StatusConflict)
 		return
 	}
 	if err != nil {
@@ -80,13 +80,13 @@ func (server *Server) systemAction(writer http.ResponseWriter, request *http.Req
 	view := systemActionView{}
 	switch action {
 	case controlcenter.ActionRestart:
-		view = systemActionView{Title: "กำลังเริ่ม Cortex ใหม่", Message: "Cortex จะกลับมาทำงานที่พอร์ตเดิมโดยอัตโนมัติ", Restart: true}
+		view = systemActionView{Title: "กำลังเริ่ม HOPE ใหม่", Message: "HOPE จะกลับมาที่พอร์ตเดิม", Restart: true}
 	case controlcenter.ActionStop:
 		if request.FormValue("confirm") != "stop" {
 			http.Error(writer, "stop confirmation is required", http.StatusBadRequest)
 			return
 		}
-		view = systemActionView{Title: "กำลังปิด Cortex", Message: "เปิดอีกครั้งได้จาก Cortex Dashboard ในเมนู Start"}
+		view = systemActionView{Title: "กำลังปิด HOPE", Message: "เปิดอีกครั้งได้จาก Start HOPE"}
 	default:
 		http.Error(writer, "unknown system action", http.StatusBadRequest)
 		return

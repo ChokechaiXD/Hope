@@ -1,1 +1,28 @@
-<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HOPE · ผลการทำงาน</title><link rel="stylesheet" href="/static/cortex.css"></head><body class="action-page"><main class="action-card"><p class="eyebrow">HOPE ACTION</p><h1>{{if .Mode.Name}}{{.Mode.Name}}{{else}}จัดการระบบแล้ว{{end}}</h1><div class="action-results">{{range .Steps}}<div class="{{if .Err}}result-error{{else}}result-ok{{end}}"><strong>{{.Integration}}{{if .Target}} · {{.Target}}{{end}}</strong><span>{{if .Err}}{{.Err}}{{else}}{{.Message}}{{end}}</span></div>{{end}}</div>{{range .OpenURLs}}<a class="button-link" href="{{.}}" target="_blank" rel="noreferrer">เปิดหน้าต่างที่เกี่ยวข้อง</a>{{end}}<a class="quiet-link" href="/">กลับ HOPE</a></main></body></html>
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HOPE · Action</title>
+  <link rel="stylesheet" href="/static/cortex.css">
+  <link rel="stylesheet" href="/static/hope.css">
+</head>
+<body class="action-page">
+  <main class="action-card" role="status">
+    <p class="eyebrow">ACTION RESULT</p>
+    <h1>{{if .Mode.Name}}{{.Mode.Name}}{{else}}เสร็จแล้ว{{end}}</h1>
+    <div class="action-results">
+      {{range .Steps}}
+      <div class="{{if .Err}}result-error{{else}}result-ok{{end}}">
+        <strong>{{.Integration}}{{if .Target}} / {{.Target}}{{end}}</strong>
+        <span>{{if .Err}}{{.Err}}{{else}}{{.Message}}{{end}}</span>
+      </div>
+      {{end}}
+    </div>
+    <div class="action-links">
+      {{range .OpenURLs}}<a class="button-link" href="{{.}}" target="_blank" rel="noreferrer">เปิดหน้า</a>{{end}}
+      <a class="quiet-link" href="/">กลับ HOPE</a>
+    </div>
+  </main>
+</body>
+</html>

@@ -117,7 +117,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	restartRequest.AddCookie(cookies[0])
 	restart := httptest.NewRecorder()
 	handler.ServeHTTP(restart, restartRequest)
-	if restart.Code != http.StatusAccepted || !strings.Contains(restart.Body.String(), "กำลังเริ่ม Cortex ใหม่") ||
+	if restart.Code != http.StatusAccepted || !strings.Contains(restart.Body.String(), "กำลังเริ่ม HOPE ใหม่") ||
 		len(control.requested) != 1 || control.requested[0] != controlcenter.ActionRestart {
 		t.Fatalf("restart status=%d body=%s actions=%#v", restart.Code, restart.Body.String(), control.requested)
 	}
@@ -138,7 +138,7 @@ func TestDashboardShowsRuntimeAndSafelyRequestsRestartOrStop(t *testing.T) {
 	confirmedRequest.AddCookie(cookies[0])
 	confirmed := httptest.NewRecorder()
 	handler.ServeHTTP(confirmed, confirmedRequest)
-	if confirmed.Code != http.StatusAccepted || !strings.Contains(confirmed.Body.String(), "กำลังปิด Cortex") ||
+	if confirmed.Code != http.StatusAccepted || !strings.Contains(confirmed.Body.String(), "กำลังปิด HOPE") ||
 		len(control.requested) != 2 || control.requested[1] != controlcenter.ActionStop {
 		t.Fatalf("confirmed stop status=%d body=%s actions=%#v", confirmed.Code, confirmed.Body.String(), control.requested)
 	}

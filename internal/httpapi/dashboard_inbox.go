@@ -39,7 +39,7 @@ var candidateGroupDefinitions = []dashboardCandidateGroup{
 	{
 		Key:         "review",
 		Label:       "ควรตรวจแยก",
-		Description: "ข้อมูลที่ Cortex ยังจัดหมวดไม่ได้ จึงไม่ควรถูกอนุมัติอัตโนมัติ",
+		Description: "ข้อมูลที่ HOPE ยังจัดหมวดไม่ได้ จึงไม่ควรถูกอนุมัติอัตโนมัติ",
 	},
 }
 

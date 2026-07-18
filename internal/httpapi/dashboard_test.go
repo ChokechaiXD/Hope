@@ -324,6 +324,45 @@ func TestDashboardConfiguresAndRunsOptionalAdvisor(t *testing.T) {
 	}
 }
 
+func TestDashboardSavesDisabledAdvisorWithoutEndpoint(t *testing.T) {
+	t.Parallel()
+	hub, err := cortex.Open(cortex.Config{
+		DatabasePath: filepath.Join(t.TempDir(), "cortex.db"),
+		AdminAgents:  []string{"mika"},
+	})
+	if err != nil {
+		t.Fatalf("open Cortex: %v", err)
+	}
+	t.Cleanup(func() { _ = hub.Close() })
+
+	handler := NewWithControlLauncherAndAdvisor(
+		hub, StaticAuthenticator{"mika-token": "mika"}, nil, nil, &fakeDashboardAdvisor{},
+	)
+	cookie := loginDashboardForTest(t, handler, "mika-token")
+	csrfToken := dashboardCSRFForTest(t, requestDashboardForTest(t, handler, cookie))
+
+	form := url.Values{
+		"csrf": {csrfToken}, "endpoint": {""}, "model": {""},
+		"input_token_budget": {"600"}, "output_token_budget": {"200"}, "effort": {"auto"},
+	}
+	request := httptest.NewRequest(http.MethodPost, "/ui/advisor/settings", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("disabled advisor settings status=%d body=%s", response.Code, response.Body.String())
+	}
+
+	status, err := hub.AdvisorStatus(context.Background(), "mika")
+	if err != nil {
+		t.Fatalf("read advisor status: %v", err)
+	}
+	if status.Settings.Enabled || status.Settings.Endpoint != "" || status.Settings.Model != "" {
+		t.Fatalf("disabled advisor settings = %#v", status.Settings)
+	}
+}
+
 func loginDashboardForTest(t *testing.T, handler http.Handler, token string) *http.Cookie {
 	t.Helper()
 	form := url.Values{"token": {token}}

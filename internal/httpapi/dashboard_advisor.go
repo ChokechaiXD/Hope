@@ -80,11 +80,6 @@ func (server *Server) advisorSettings(writer http.ResponseWriter, request *http.
 		http.Error(writer, "advisor is unavailable", http.StatusServiceUnavailable)
 		return
 	}
-	endpoint, err := intelligence.ValidateEndpoint(request.FormValue("endpoint"))
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
 	inputBudget, err := formInteger(request, "input_token_budget")
 	if err != nil {
 		http.Error(writer, "invalid advisor input budget", http.StatusBadRequest)
@@ -96,6 +91,15 @@ func (server *Server) advisorSettings(writer http.ResponseWriter, request *http.
 		return
 	}
 	enabled := request.FormValue("enabled") == "yes"
+	endpoint := strings.TrimSpace(request.FormValue("endpoint"))
+	if enabled || endpoint != "" {
+		var err error
+		endpoint, err = intelligence.ValidateEndpoint(endpoint)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
 	model := strings.TrimSpace(request.FormValue("model"))
 	if enabled && model == "" {
 		http.Error(writer, "model is required when advisor is enabled", http.StatusBadRequest)
